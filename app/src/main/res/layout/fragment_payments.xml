@@ -1,53 +1,397 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.dairyhisaab">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F4F7FC">
 
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!-- HEADER -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="32dp"
+        android:paddingBottom="20dp"
+        android:paddingHorizontal="20dp"
+        android:background="@drawable/bg_gradient_header">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Payments"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Members transaction management"
+            android:textColor="#90CAF9"
+            android:textSize="12sp" />
+    </LinearLayout>
 
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="Dairy Hisaab Kitab"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="false"
-        android:theme="@style/AppTheme">
+    <!-- TWO MAIN BUTTONS -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="2"
+        android:padding="12dp"
+        android:background="#FFFFFF"
+        android:elevation="4dp">
 
-        <meta-data
-            android:name="com.google.firebase.auth.api.key.PLAY_INTEGRITY_TOKEN_PROVIDER"
-            android:value="false" />
+        <Button
+            android:id="@+id/btnNewPaymentTab"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:text="âž• Naya Payment"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:backgroundTint="#1a3c5e"/>
 
-        <service
-            android:name="androidx.work.impl.background.systemjob.SystemJobService"
-            android:exported="true"
-            android:permission="android.permission.BIND_JOB_SERVICE"/>
+        <Button
+            android:id="@+id/btnPrevPaymentsTab"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:text="ðŸ“‹ Purane Payments"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:backgroundTint="#6B7280"/>
 
-        <activity
-            android:name=".LoginActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
-        </activity>
+    </LinearLayout>
 
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:windowSoftInputMode="adjustResize"/>
+    <!-- NAYA PAYMENT SECTION -->
+    <ScrollView
+        android:id="@+id/sectionNewPayment"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="visible">
 
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="com.example.dairyhisaab.provider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"/>
-        </provider>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="20dp">
 
-    </application>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_margin="16dp"
+                android:padding="16dp"
+                android:background="@drawable/bg_section_card"
+                android:elevation="4dp">
 
-</manifest>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="âž• Naya Payment Form"
+                    android:textColor="@color/dairy_blue_primary"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- DATE -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PAYMENT DATE" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"/>
+                <EditText
+                    android:id="@+id/etPayDate"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:focusable="false"
+                    android:clickable="true"
+                    android:paddingStart="12dp"
+                    android:background="@drawable/bg_input_field"
+                    android:textColor="@color/text_dark"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- TIME (auto, read-only) -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PAYMENT TIME" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"/>
+                <EditText
+                    android:id="@+id/etPayTime"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:focusable="false"
+                    android:clickable="false"
+                    android:paddingStart="12dp"
+                    android:background="@drawable/bg_input_field"
+                    android:textColor="#6B7280"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- MEMBER CODE -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="MEMBER CODE DAALO" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"/>
+                <EditText
+                    android:id="@+id/etMemberCode"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:hint="M001 ya sirf 1"
+                    android:paddingStart="12dp"
+                    android:background="@drawable/bg_input_field"
+                    android:textColor="@color/text_dark"
+                    android:inputType="textCapCharacters"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="4dp"/>
+
+                <TextView
+                    android:id="@+id/tvMemberInfo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"
+                    android:textSize="12sp"
+                    android:layout_marginBottom="12dp"
+                    android:paddingHorizontal="4dp"/>
+
+                <!-- AMOUNT -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="AMOUNT (â‚¹)" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"/>
+                <EditText
+                    android:id="@+id/etAmount"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:hint="Amount daalo"
+                    android:paddingStart="12dp"
+                    android:background="@drawable/bg_input_field"
+                    android:textColor="@color/text_dark"
+                    android:inputType="numberDecimal"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- NOTE -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="NOTE / REMARK" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"/>
+                <EditText
+                    android:id="@+id/etNote"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:hint="Koi tippani (Optional)"
+                    android:paddingStart="12dp"
+                    android:background="@drawable/bg_input_field"
+                    android:textColor="@color/text_dark"
+                    android:inputType="text"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="16dp"/>
+
+                <!-- SIGNATURES -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="SIGNATURES (OPTIONAL)" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="2"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="6dp">
+                        <Button
+                            android:id="@+id/btnPaidBy"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:text="âœï¸ Paid By"
+                            android:backgroundTint="#1a3c5e"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"/>
+                        <TextView
+                            android:id="@+id/tvPaidSignStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"
+                            android:textSize="11sp"
+                            android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="6dp">
+                        <Button
+                            android:id="@+id/btnReceivedBy"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:text="âœï¸ Received By"
+                            android:backgroundTint="#065f46"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"/>
+                        <TextView
+                            android:id="@+id/tvReceivedSignStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"
+                            android:textSize="11sp"
+                            android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnSavePayment"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:text="âœ… SAVE PAYMENT"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    android:backgroundTint="@color/dairy_blue_primary"/>
+
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- PURANE PAYMENTS SECTION -->
+    <ScrollView
+        android:id="@+id/sectionPrevPayments"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="20dp">
+
+            <!-- Filter Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_margin="16dp"
+                android:padding="16dp"
+                android:background="@drawable/bg_section_card"
+                android:elevation="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ðŸ” Transaction Dhundo"
+                    android:textColor="@color/dairy_blue_primary"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- Date From -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="DATE SE (FROM)" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"/>
+                <EditText
+                    android:id="@+id/etFilterDateFrom"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:focusable="false"
+                    android:clickable="true"
+                    android:paddingStart="12dp"
+                    android:background="@drawable/bg_input_field"
+                    android:textColor="@color/text_dark"
+                    android:hint="DD/MM/YY"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- Date To -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="DATE TAK (TO)" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"/>
+                <EditText
+                    android:id="@+id/etFilterDateTo"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:focusable="false"
+                    android:clickable="true"
+                    android:paddingStart="12dp"
+                    android:background="@drawable/bg_input_field"
+                    android:textColor="@color/text_dark"
+                    android:hint="DD/MM/YY"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- Member Code Filter -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="MEMBER CODE (OPTIONAL)" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"/>
+                <EditText
+                    android:id="@+id/etFilterMember"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:hint="M001 ya 1 (khali chhodo = sab members)"
+                    android:paddingStart="12dp"
+                    android:background="@drawable/bg_input_field"
+                    android:textColor="@color/text_dark"
+                    android:inputType="textCapCharacters"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="16dp"/>
+
+                <Button
+                    android:id="@+id/btnSearchPayments"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:text="ðŸ” DHUNDO"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    android:backgroundTint="@color/dairy_blue_primary"/>
+
+            </LinearLayout>
+
+            <!-- Results Card -->
+            <LinearLayout
+                android:id="@+id/prevResultsCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginHorizontal="16dp"
+                android:padding="16dp"
+                android:background="@drawable/bg_section_card"
+                android:elevation="4dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvPrevResultTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ðŸ“Š Transactions"
+                    android:textColor="@color/text_dark"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="8dp"/>
+
+                <LinearLayout
+                    android:id="@+id/prevPaymentsList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"/>
+
+                <TextView
+                    android:id="@+id/tvPrevTotal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#059669"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>
