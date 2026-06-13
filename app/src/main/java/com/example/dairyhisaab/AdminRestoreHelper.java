@@ -1,0 +1,88 @@
+package com.example.dairyhisaab;
+
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.widget.Toast;
+import androidx.fragment.app.FragmentActivity;
+import java.util.HashMap;
+import java.util.Map;
+
+public class AdminRestoreHelper {
+
+    public static void requestRestore(FragmentActivity activity, DairyDataManager dm, FirebaseManager fm, Runnable onSuccess) {
+        new AlertDialog.Builder(activity)
+            .setTitle("Admin Approval Chahiye")
+            .setMessage("Cloud restore ke liye admin approval zaroori hai.\n\nRequest bhejein?")
+            .setPositiveButton("Haan", (d, w) -> sendRequest(activity, dm, fm, onSuccess))
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+    private static void sendRequest(FragmentActivity activity, DairyDataManager dm, FirebaseManager fm, Runnable onSuccess) {
+        String requestId = String.valueOf(System.currentTimeMillis());
+        Map<String, Object> req = new HashMap<>();
+        req.put("userEmail", fm.getUserEmail());
+        req.put("status", "pending");
+        req.put("timestamp", System.currentTimeMillis());
+
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection("restore_requests").document(requestId)
+            .set(req)
+            .addOnSuccessListener(v -> activity.runOnUiThread(() -> {
+                Toast.makeText(activity, "Request bhej di! Admin approve kare.", Toast.LENGTH_LONG).show();
+                waitForApproval(activity, dm, fm, requestId, onSuccess);
+            }))
+            .addOnFailureListener(e -> activity.runOnUiThread(() ->
+                Toast.makeText(activity, "Request fail: " + e.getMessage(), Toast.LENGTH_LONG).show()));
+    }
+
+    private static void waitForApproval(FragmentActivity activity, DairyDataManager dm, FirebaseManager fm, String requestId, Runnable onSuccess) {
+        ProgressDialog wp = new ProgressDialog(activity);
+        wp.setMessage("Admin approval ka wait kar rahe hain...");
+        wp.setCancelable(true);
+        wp.show();
+
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection("restore_requests").document(requestId)
+            .addSnapshotListener((snap, e) -> {
+                if (snap != null && snap.exists()) {
+                    String st = (String) snap.get("status");
+                    if ("approved".equals(st)) {
+                        activity.runOnUiThread(() -> { wp.dismiss(); doRestore(activity, dm, fm, requestId, onSuccess); });
+                    } else if ("rejected".equals(st)) {
+                        activity.runOnUiThread(() -> { wp.dismiss();
+                            com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("restore_requests").document(requestId).delete();
+                            Toast.makeText(activity, "Admin ne reject kar diya.", Toast.LENGTH_LONG).show();
+                        });
+                    }
+                }
+            });
+    }
+
+    private static void doRestore(FragmentActivity activity, DairyDataManager dm, FirebaseManager fm, String requestId, Runnable onSuccess) {
+        ProgressDialog pd = new ProgressDialog(activity);
+        pd.setMessage("Cloud se data la raha hai...");
+        pd.setCancelable(false);
+        pd.show();
+
+        fm.downloadAllData(new FirebaseManager.DownloadCallback() {
+            @Override public void onSuccess(java.util.Map<String, Object> data) {
+                activity.runOnUiThread(() -> {
+                    pd.dismiss();
+                    try {
+                        fm.restoreData(dm, data);
+                        com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("restore_requests").document(requestId).delete();
+                        Toast.makeText(activity, "Restore Successful!", Toast.LENGTH_LONG).show();
+                        if (onSuccess != null) onSuccess.run();
+                    } catch (Exception ex) {
+                        Toast.makeText(activity, "Error: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+            @Override public void onFailure(String error) {
+                activity.runOnUiThread(() -> { pd.dismiss(); Toast.makeText(activity, error, Toast.LENGTH_LONG).show(); });
+            }
+        });
+    }
+}
