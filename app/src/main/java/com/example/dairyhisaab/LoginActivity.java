@@ -34,7 +34,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText etEmail, etPassword, etName;
     private android.view.View layoutName;
     private TextView tvToggle;
-    private boolean isLoginMode = true;
+    private boolean isLoginMode = false;
 
 
 
@@ -57,7 +57,6 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         initViews();
-        toggleMode();
         setupClickListeners();
         setupGoogleSignIn();
     }
@@ -144,7 +143,6 @@ public class LoginActivity extends AppCompatActivity {
                                 .addOnCompleteListener(emailTask -> {
                                     mAuth.signOut();
                                     Toast.makeText(this, "Account ban gaya! " + email + " pe verification link bheja gaya.", Toast.LENGTH_LONG).show();
-                                    toggleMode();
                                 });
                     } else {
                         Toast.makeText(this, "Registration failed: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
