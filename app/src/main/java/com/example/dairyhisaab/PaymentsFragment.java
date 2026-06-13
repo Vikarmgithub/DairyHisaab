@@ -2,15 +2,14 @@ package com.example.dairyhisaab;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.fragment.app.Fragment;
@@ -31,11 +30,10 @@ public class PaymentsFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_payments, container, false);
         dm = DairyDataManager.getInstance(getContext());
+        customers = dm.getCustomers();
 
         EditText etPayDate = view.findViewById(R.id.etPayDate);
         etPayDate.setText(DairyDataManager.today());
-
-        // ✅ FIX 1: Date picker on tap
         etPayDate.setFocusable(false);
         etPayDate.setClickable(true);
         etPayDate.setOnClickListener(v -> {
@@ -58,14 +56,13 @@ public class PaymentsFragment extends Fragment {
             }
         });
 
-        loadSpinner(view);
+        setupMemberCodeInput(view);
         loadPayments(view);
 
         view.findViewById(R.id.btnSavePayment).setOnClickListener(v -> savePayment(view));
         return view;
     }
 
-    // ✅ FIX 2: Net bill = gross - PF deduction
     double netBill(String customerId) {
         double total = 0;
         for (MilkEntry e : dm.getEntries()) {
@@ -82,51 +79,50 @@ public class PaymentsFragment extends Fragment {
         return netBill(customerId) - dm.totalPaid(customerId);
     }
 
-    void loadSpinner(View view) {
-        customers = dm.getCustomers();
-        Spinner spinner = view.findViewById(R.id.spinnerMember);
+    void setupMemberCodeInput(View view) {
+        EditText etCode = view.findViewById(R.id.etMemberCode);
+        TextView tvInfo = view.findViewById(R.id.tvMemberInfo);
 
-        List<String> names = new ArrayList<>();
-        names.add("-- Member chunno --");
-        for (Customer c : customers) {
-            double baaki = netOutstanding(c.id);
-            names.add("[" + c.memberCode + "] " + c.name +
-                (baaki > 0 ? " (Rs." + String.format("%.0f", baaki) + " baaki)" : ""));
-        }
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(),
-            android.R.layout.simple_spinner_item, names);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(adapter);
-
-        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            public void onItemSelected(AdapterView<?> parent, View v, int pos, long id) {
-                TextView tvInfo = view.findViewById(R.id.tvMemberInfo);
-                if (pos == 0) {
-                    selectedCid = "";
-                    tvInfo.setVisibility(View.GONE);
-                } else {
-                    Customer c = customers.get(pos - 1);
-                    selectedCid = c.id;
-                    double bill  = netBill(c.id);
-                    double paid  = dm.totalPaid(c.id);
-                    double baaki = netOutstanding(c.id);
-                    tvInfo.setText(c.name
+        etCode.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
+            public void onTextChanged(CharSequence s, int st, int b, int c) {}
+            public void afterTextChanged(Editable s) {
+                String code = s.toString().trim().toUpperCase();
+                Customer found = null;
+                for (Customer cu : customers) {
+                    if (cu.memberCode != null && cu.memberCode.toUpperCase().equals(code)) {
+                        found = cu;
+                        break;
+                    }
+                }
+                if (found != null) {
+                    selectedCid = found.id;
+                    double bill  = netBill(found.id);
+                    double paid  = dm.totalPaid(found.id);
+                    double baaki = netOutstanding(found.id);
+                    tvInfo.setText(found.name
                         + " | Bill: Rs." + String.format("%.0f", bill)
                         + " | Paid: Rs." + String.format("%.0f", paid)
                         + " | Baaki: Rs." + String.format("%.0f", baaki));
-                    tvInfo.setBackgroundColor(0xFFf0fdf4);
                     tvInfo.setTextColor(baaki > 0 ? 0xFFe05a2b : 0xFF059669);
                     tvInfo.setVisibility(View.VISIBLE);
+                } else {
+                    selectedCid = "";
+                    if (!code.isEmpty()) {
+                        tvInfo.setText("Code nahi mila: " + code);
+                        tvInfo.setTextColor(0xFFe05a2b);
+                        tvInfo.setVisibility(View.VISIBLE);
+                    } else {
+                        tvInfo.setVisibility(View.GONE);
+                    }
                 }
             }
-            public void onNothingSelected(AdapterView<?> parent) {}
         });
     }
 
     void savePayment(View view) {
         if (selectedCid.isEmpty()) {
-            Toast.makeText(getContext(), "Member chunno!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Sahi member code daalo!", Toast.LENGTH_SHORT).show();
             return;
         }
         String amtStr = ((EditText) view.findViewById(R.id.etAmount)).getText().toString().trim();
@@ -148,10 +144,12 @@ public class PaymentsFragment extends Fragment {
         all.add(p);
         dm.savePayments(all);
 
+        ((EditText) view.findViewById(R.id.etMemberCode)).setText("");
         ((EditText) view.findViewById(R.id.etAmount)).setText("");
         ((EditText) view.findViewById(R.id.etNote)).setText("");
-        Toast.makeText(getContext(), "Payment save ho gayi!", Toast.LENGTH_SHORT).show();
-        loadSpinner(view);
+        selectedCid = "";
+
+        Toast.makeText(getContext(), "✅ Payment save ho gayi!", Toast.LENGTH_SHORT).show();
         loadPayments(view);
     }
 
@@ -224,7 +222,6 @@ public class PaymentsFragment extends Fragment {
                 all.removeIf(x -> x.id.equals(fp.id));
                 dm.savePayments(all);
                 loadPayments(view);
-                loadSpinner(view);
             });
 
             row.addView(info);
