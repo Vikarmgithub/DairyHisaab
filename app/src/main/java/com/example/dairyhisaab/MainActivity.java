@@ -33,7 +33,8 @@ public class MainActivity extends AppCompatActivity {
         tab_backup    = findViewById(R.id.tab_backup);
         viewPager     = findViewById(R.id.viewPager);
 
-        allTabs = new Button[]{tab_dashboard, tab_members, tab_daily, tab_payments, tab_rate, tab_reports, tab_backup};
+        allTabs = new Button[]{tab_dashboard, tab_members, tab_daily, tab_payments,
+                               tab_rate, tab_reports, tab_backup};
 
         MainPagerAdapter adapter = new MainPagerAdapter(this);
         viewPager.setAdapter(adapter);
@@ -46,15 +47,68 @@ public class MainActivity extends AppCompatActivity {
         });
 
         tab_dashboard.setOnClickListener(v -> viewPager.setCurrentItem(0, true));
-        tab_members.setOnClickListener(v -> viewPager.setCurrentItem(1, true));
-        tab_daily.setOnClickListener(v -> viewPager.setCurrentItem(2, true));
-        tab_payments.setOnClickListener(v -> viewPager.setCurrentItem(3, true));
-        tab_rate.setOnClickListener(v -> viewPager.setCurrentItem(4, true));
-        tab_reports.setOnClickListener(v -> viewPager.setCurrentItem(5, true));
-        tab_backup.setOnClickListener(v -> viewPager.setCurrentItem(6, true));
+        tab_members.setOnClickListener(v ->   viewPager.setCurrentItem(1, true));
+        tab_daily.setOnClickListener(v ->     viewPager.setCurrentItem(2, true));
+        tab_payments.setOnClickListener(v ->  viewPager.setCurrentItem(3, true));
+        tab_rate.setOnClickListener(v ->      viewPager.setCurrentItem(4, true));
+        tab_reports.setOnClickListener(v ->   viewPager.setCurrentItem(5, true));
+        tab_backup.setOnClickListener(v ->    viewPager.setCurrentItem(6, true));
 
         updateTabStyles(tab_dashboard);
         scheduleAutoBackup();
+    }
+
+    /**
+     * App background mein jaaye (home button, dusra app) — turant backup
+     */
+    @Override
+    protected void onStop() {
+        super.onStop();
+        triggerImmediateBackup();
+    }
+
+    /**
+     * Background thread pe dono backup chalao — UI block na ho
+     */
+    private void triggerImmediateBackup() {
+        new Thread(() -> {
+            // 1. Local file backup — seedha, fast
+            LocalBackupHelper.saveLocalBackup(getApplicationContext());
+
+            // 2. Firebase backup — network ke saath
+            if (FirebaseManager.getInstance().isLoggedIn()) {
+                FirebaseManager.getInstance().uploadAllData(
+                    DairyDataManager.getInstance(getApplicationContext()),
+                    new FirebaseManager.UploadCallback() {
+                        public void onSuccess() {}
+                        public void onFailure(String e) {}
+                    }
+                );
+            }
+        }).start();
+    }
+
+    /**
+     * WorkManager — har 6 ghante mein safety net backup
+     * (network available ho tabhi)
+     */
+    private void scheduleAutoBackup() {
+        if (!FirebaseManager.getInstance().isLoggedIn()) return;
+
+        Constraints constraints = new Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build();
+
+        PeriodicWorkRequest backupRequest = new PeriodicWorkRequest.Builder(
+                AutoBackupWorker.class,
+                6, TimeUnit.HOURS)
+                .setConstraints(constraints)
+                .build();
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "DairyAutoBackup",
+                ExistingPeriodicWorkPolicy.KEEP,
+                backupRequest);
     }
 
     private void updateTabStyles(Button activeTab) {
@@ -67,25 +121,6 @@ public class MainActivity extends AppCompatActivity {
                 tab.setTextColor(Color.parseColor("#90CAF9"));
             }
         }
-    }
-
-    private void scheduleAutoBackup() {
-        if (!FirebaseManager.getInstance().isLoggedIn()) return;
-
-        Constraints constraints = new Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build();
-
-        PeriodicWorkRequest backupRequest = new PeriodicWorkRequest.Builder(
-                AutoBackupWorker.class,
-                12, TimeUnit.HOURS)
-                .setConstraints(constraints)
-                .build();
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-                "DairyAutoBackup",
-                ExistingPeriodicWorkPolicy.KEEP,
-                backupRequest);
     }
 
     public DairyDataManager getDataManager() {
