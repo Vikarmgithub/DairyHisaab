@@ -7,6 +7,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.Source; // ✅ BUG FIX: Source import add kiya
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.text.SimpleDateFormat;
@@ -92,15 +93,19 @@ public class FirebaseManager {
         void onFailure(String error);
     }
 
+    // ✅ BUG FIX #1: Source.SERVER add kiya — ab hamesha cloud se fresh data aayega,
+    //    offline cache se nahi. Pehle cache se empty/purana data aata tha aur
+    //    "Restore Successful!" dikha deta tha bina kuch restore kiye.
     public void downloadAllData(DownloadCallback callback) {
         String uid = getCurrentUserId();
         if (uid == null) { callback.onFailure("Login nahi hai!"); return; }
-        db.collection(COLLECTION_USERS).document(uid).get()
+        db.collection(COLLECTION_USERS).document(uid)
+                .get(Source.SERVER) // ✅ FIXED: pehle yahan sirf .get() tha
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) callback.onSuccess(doc.getData());
-                    else callback.onFailure("Koi backup nahi mila!");
+                    else callback.onFailure("Koi backup nahi mila! Pehle backup karo.");
                 })
-                .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
+                .addOnFailureListener(e -> callback.onFailure("Download failed: " + e.getMessage()));
     }
 
     public void restoreData(DairyDataManager dm, Map<String, Object> data) {
