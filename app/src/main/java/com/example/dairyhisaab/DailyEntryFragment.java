@@ -9,6 +9,8 @@ import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.print.PrintAttributes;
+import android.print.PrintManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -58,6 +60,9 @@ public class DailyEntryFragment extends Fragment {
     private List<MilkEntry> sessionEntries = new ArrayList<>();
     private Customer foundCustomer = null;
 
+    // Edit mode tracking
+    private MilkEntry editingEntry = null;
+
     public DailyEntryFragment() {}
 
     @Nullable
@@ -88,23 +93,18 @@ public class DailyEntryFragment extends Fragment {
         tvTotalSummary = view.findViewById(R.id.tvTotalSummary);
         btnPrintSlip   = view.findViewById(R.id.btnPrintSlip);
 
-        // Today's date
         String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         etDate.setText(today);
 
-        // Load active rates
         loadActiveRates();
 
-        // Date controls
         etDate.setOnClickListener(v -> openDatePicker());
         btnPrevDay.setOnClickListener(v -> changeDate(-1));
         btnNextDay.setOnClickListener(v -> changeDate(1));
 
-        // Shift toggle
         btnMorning.setOnClickListener(v -> selectShift("Subah"));
         btnEvening.setOnClickListener(v -> selectShift("Shaam"));
 
-        // Animal toggle
         tvAnimalToggle.setOnClickListener(v -> {
             isBuffalo = !isBuffalo;
             tvAnimalToggle.setText(isBuffalo ? "भैंस" : "गाय");
@@ -113,16 +113,17 @@ public class DailyEntryFragment extends Fragment {
             recalcQuickAmount();
         });
 
-        // Code lookup
         etQuickCode.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int i, int i1, int i2) {}
             @Override public void afterTextChanged(Editable s) {}
             @Override public void onTextChanged(CharSequence s, int i, int i1, int i2) {
-                lookupMember(s.toString().trim());
+                // Only do code lookup if NOT in edit mode
+                if (editingEntry == null) {
+                    lookupMember(s.toString().trim());
+                }
             }
         });
 
-        // Qty/Fat auto calc
         TextWatcher calcWatcher = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int i, int i1, int i2) {}
             @Override public void afterTextChanged(Editable s) {}
@@ -134,14 +135,14 @@ public class DailyEntryFragment extends Fragment {
         etQuickFat.addTextChangedListener(calcWatcher);
 
         btnQuickSave.setOnClickListener(v -> saveQuickEntry());
-        btnPrintSlip.setOnClickListener(v -> printSlipPdf());
+        btnPrintSlip.setOnClickListener(v -> printAllSlipsPdf());
 
         loadEntriesForCurrentDateShift();
 
         return view;
     }
 
-    // ── Active rate load karo ──
+    // ── Active rate load ──
     private void loadActiveRates() {
         String date = etDate != null ? etDate.getText().toString().trim()
                 : new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
@@ -201,14 +202,67 @@ public class DailyEntryFragment extends Fragment {
         }
     }
 
-    // ── Save quick entry ──
+    // ── Save / Update entry ──
     private void saveQuickEntry() {
+        String qStr = etQuickQty.getText().toString().trim();
+        String fStr = etQuickFat.getText().toString().trim();
+
+        // ══ EDIT MODE ══
+        if (editingEntry != null) {
+            try {
+                double qty = qStr.isEmpty() ? 0 : Double.parseDouble(qStr);
+
+                List<MilkEntry> all = dm.getEntries();
+
+                if (qty == 0) {
+                    // DELETE: qty 0 likhne par entry hata do
+                    all.removeIf(e -> e.id.equals(editingEntry.id));
+                    dm.saveEntries(all);
+                    sessionEntries.removeIf(e -> e.id.equals(editingEntry.id));
+                    Toast.makeText(getContext(), "✅ Entry delete ho gayi!", Toast.LENGTH_SHORT).show();
+                } else {
+                    // UPDATE
+                    double fat  = fStr.isEmpty() ? 0 : Double.parseDouble(fStr);
+                    double rate = (isBuffalo ? buffFatRate : cowFatRate) * fat / 100.0
+                                + (isBuffalo ? buffCommission : cowCommission);
+
+                    for (MilkEntry e : all) {
+                        if (e.id.equals(editingEntry.id)) {
+                            e.qty  = qty;
+                            e.fat  = fat;
+                            e.rate = rate;
+                            break;
+                        }
+                    }
+                    dm.saveEntries(all);
+
+                    for (MilkEntry e : sessionEntries) {
+                        if (e.id.equals(editingEntry.id)) {
+                            e.qty  = qty;
+                            e.fat  = fat;
+                            e.rate = rate;
+                            break;
+                        }
+                    }
+                    Toast.makeText(getContext(), "✅ Entry update ho gayi!", Toast.LENGTH_SHORT).show();
+                }
+
+                // Exit edit mode and refresh
+                cancelEditMode();
+                loadEntriesForCurrentDateShift();
+                return;
+
+            } catch (Exception e) {
+                Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+
+        // ══ NEW ENTRY MODE ══
         if (foundCustomer == null) {
             Toast.makeText(getContext(), "Pehle sahi Code No. daalo!", Toast.LENGTH_SHORT).show();
             return;
         }
-        String qStr = etQuickQty.getText().toString().trim();
-        String fStr = etQuickFat.getText().toString().trim();
         if (qStr.isEmpty()) {
             Toast.makeText(getContext(), "Qty daalo!", Toast.LENGTH_SHORT).show();
             return;
@@ -251,6 +305,60 @@ public class DailyEntryFragment extends Fragment {
         }
     }
 
+    // ── Enter edit mode when row is tapped ──
+    private void enterEditMode(MilkEntry entry, Customer c) {
+        editingEntry = entry;
+
+        // Fill fields with existing data
+        etQuickCode.setText(c.memberCode);
+        etQuickQty.setText(String.valueOf(entry.qty));
+        etQuickFat.setText(String.valueOf(entry.fat));
+        tvQuickName.setText("✏️ " + c.name + " (Edit Mode)");
+        tvQuickName.setTextColor(Color.parseColor("#E65100"));
+
+        // Change save button to indicate update
+        btnQuickSave.setText("✅ Update");
+        btnQuickSave.setBackgroundColor(Color.parseColor("#E65100"));
+
+        // Highlight the editing row
+        highlightEditingRow(entry.id);
+
+        etQuickQty.requestFocus();
+        etQuickQty.selectAll();
+
+        Toast.makeText(getContext(),
+                "✏️ Edit mode: Qty badlo ya 0 likho delete ke liye",
+                Toast.LENGTH_SHORT).show();
+    }
+
+    // ── Cancel edit mode ──
+    private void cancelEditMode() {
+        editingEntry = null;
+        etQuickCode.setText("");
+        etQuickQty.setText("");
+        etQuickFat.setText("");
+        tvQuickName.setText("— Member naam —");
+        tvQuickName.setTextColor(Color.parseColor("#9E9E9E"));
+        tvQuickAmount.setText("₹0.00");
+        foundCustomer = null;
+        btnQuickSave.setText("✔");
+        btnQuickSave.setBackgroundColor(Color.parseColor("#1B5E20"));
+        etQuickCode.requestFocus();
+    }
+
+    // ── Highlight the row being edited ──
+    private void highlightEditingRow(String entryId) {
+        for (int i = 0; i < entryList.getChildCount(); i++) {
+            View row = entryList.getChildAt(i);
+            if (entryId.equals(row.getTag())) {
+                row.setBackgroundColor(Color.parseColor("#FFF3E0")); // light orange
+            } else {
+                int rowColor = (i % 2 == 0) ? Color.WHITE : Color.parseColor("#F1F8E9");
+                row.setBackgroundColor(rowColor);
+            }
+        }
+    }
+
     // ── Add row to list ──
     private void addEntryRowToList(MilkEntry entry, Customer c) {
         double gross = entry.qty * entry.rate;
@@ -283,30 +391,333 @@ public class DailyEntryFragment extends Fragment {
         // PF Deduction
         row.addView(makeCellCenter(
                 String.format(Locale.getDefault(), "₹%.1f", pf), 44, false, "#C62828"));
-        // Rest Amount
+        // Net Amount
         row.addView(makeCellEnd(
                 String.format(Locale.getDefault(), "₹%.2f", net), 56, true, "#2E7D32"));
 
-        // Delete
-        TextView tvDel = new TextView(getContext());
-        tvDel.setLayoutParams(new LinearLayout.LayoutParams(44,
+        // 🖨️ Print button (individual slip) — replaces old delete button
+        TextView tvPrint = new TextView(getContext());
+        tvPrint.setLayoutParams(new LinearLayout.LayoutParams(44,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
-        tvDel.setText("🗑");
-        tvDel.setTextSize(14);
-        tvDel.setGravity(android.view.Gravity.CENTER);
-        tvDel.setClickable(true);
-        tvDel.setFocusable(true);
-        tvDel.setOnClickListener(v -> {
-            List<MilkEntry> all = dm.getEntries();
-            all.removeIf(e -> e.id.equals(entry.id));
-            dm.saveEntries(all);
-            sessionEntries.removeIf(e -> e.id.equals(entry.id));
-            entryList.removeView(row);
-            updateTotalSummary();
-        });
-        row.addView(tvDel);
+        tvPrint.setText("🖨");
+        tvPrint.setTextSize(14);
+        tvPrint.setGravity(android.view.Gravity.CENTER);
+        tvPrint.setClickable(true);
+        tvPrint.setFocusable(true);
+        tvPrint.setOnClickListener(v -> printIndividualSlip(entry, c));
+        row.addView(tvPrint);
+
+        // ── Tap on row → Edit mode ──
+        row.setClickable(true);
+        row.setFocusable(true);
+        row.setOnClickListener(v -> enterEditMode(entry, c));
 
         entryList.addView(row);
+    }
+
+    // ── Print individual member slip ──
+    private void printIndividualSlip(MilkEntry entry, Customer c) {
+        String dairyName = getDairyName();
+
+        PdfDocument doc = new PdfDocument();
+        PdfDocument.PageInfo pageInfo =
+                new PdfDocument.PageInfo.Builder(595, 420, 1).create(); // shorter page
+        PdfDocument.Page page = doc.startPage(pageInfo);
+        Canvas canvas = page.getCanvas();
+        Paint p = new Paint();
+        p.setAntiAlias(true);
+
+        int y = 40;
+        int left = 40;
+
+        // Dairy Name
+        p.setTextSize(20);
+        p.setTypeface(Typeface.DEFAULT_BOLD);
+        p.setColor(Color.parseColor("#1B5E20"));
+        canvas.drawText(dairyName, left, y, p);
+        y += 22;
+
+        // Subtitle
+        p.setTextSize(11);
+        p.setTypeface(Typeface.DEFAULT);
+        p.setColor(Color.DKGRAY);
+        canvas.drawText("Collection Slip  |  " + selectedShift + " Shift  |  " +
+                etDate.getText().toString(), left, y, p);
+        y += 7;
+
+        // Divider
+        p.setColor(Color.parseColor("#1B5E20"));
+        p.setStrokeWidth(1.5f);
+        canvas.drawLine(left, y, 555, y, p);
+        y += 16;
+
+        // Member details
+        p.setTextSize(13);
+        p.setTypeface(Typeface.DEFAULT_BOLD);
+        p.setColor(Color.BLACK);
+        canvas.drawText("Member: " + c.name, left, y, p);
+        y += 16;
+
+        p.setTypeface(Typeface.DEFAULT);
+        p.setTextSize(11);
+        p.setColor(Color.DKGRAY);
+        if (c.fatherHusband != null && !c.fatherHusband.isEmpty()) {
+            canvas.drawText("S/o W/o: " + c.fatherHusband, left, y, p);
+            y += 14;
+        }
+        canvas.drawText("Code No.: " + c.memberCode +
+                (c.uniqueId != null && !c.uniqueId.isEmpty()
+                        ? "   Un.No.: " + c.uniqueId : ""), left, y, p);
+        y += 14;
+
+        p.setStrokeWidth(0.5f);
+        p.setColor(Color.LTGRAY);
+        canvas.drawLine(left, y, 555, y, p);
+        y += 14;
+
+        // Table Header
+        p.setTextSize(11);
+        p.setTypeface(Typeface.DEFAULT_BOLD);
+        p.setColor(Color.parseColor("#1B5E20"));
+        int[] cols = {left, left+60, left+160, left+220, left+280, left+360, left+440};
+        canvas.drawText("Code",    cols[0], y, p);
+        canvas.drawText("Member",  cols[1], y, p);
+        canvas.drawText("Milk L",  cols[2], y, p);
+        canvas.drawText("Fat",     cols[3], y, p);
+        canvas.drawText("Rate",    cols[4], y, p);
+        canvas.drawText("PF Ded.", cols[5], y, p);
+        canvas.drawText("Net Amt", cols[6], y, p);
+        y += 6;
+        p.setStrokeWidth(1f);
+        p.setColor(Color.parseColor("#1B5E20"));
+        canvas.drawLine(left, y, 555, y, p);
+        y += 14;
+
+        // Single row
+        double gross = entry.qty * entry.rate;
+        double pf    = entry.qty * pfPerLiter;
+        double net   = gross - pf;
+
+        p.setTypeface(Typeface.DEFAULT);
+        p.setTextSize(12);
+        p.setColor(Color.BLACK);
+        canvas.drawText(c.memberCode, cols[0], y, p);
+        canvas.drawText(c.name,       cols[1], y, p);
+        canvas.drawText(String.format(Locale.getDefault(), "%.1f", entry.qty),  cols[2], y, p);
+        canvas.drawText(String.format(Locale.getDefault(), "%.1f", entry.fat),  cols[3], y, p);
+        canvas.drawText(String.format(Locale.getDefault(), "%.2f", entry.rate), cols[4], y, p);
+        p.setColor(Color.parseColor("#C62828"));
+        canvas.drawText(String.format(Locale.getDefault(), "%.2f", pf),  cols[5], y, p);
+        p.setColor(Color.parseColor("#2E7D32"));
+        canvas.drawText(String.format(Locale.getDefault(), "%.2f", net), cols[6], y, p);
+        y += 30;
+
+        // Footer
+        p.setTextSize(9);
+        p.setTypeface(Typeface.DEFAULT);
+        p.setColor(Color.GRAY);
+        canvas.drawText("Generated by Dairy Hisaab App", left, y, p);
+
+        doc.finishPage(page);
+
+        // Save and print
+        try {
+            File dir = getContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
+            if (dir != null && !dir.exists()) dir.mkdirs();
+            String fileName = "slip_" + c.memberCode + "_" + etDate.getText().toString()
+                    + "_" + selectedShift + ".pdf";
+            File file = new File(dir, fileName);
+            doc.writeTo(new FileOutputStream(file));
+            doc.close();
+
+            // Direct print via PrintManager
+            PrintManager printManager = (PrintManager)
+                    getContext().getSystemService(android.content.Context.PRINT_SERVICE);
+            if (printManager != null) {
+                FilePrintAdapter adapter =
+                        new FilePrintAdapter(getContext(), file, "Slip_" + c.name);
+                printManager.print(
+                        "Slip_" + c.name,
+                        adapter,
+                        new PrintAttributes.Builder()
+                                .setMediaSize(PrintAttributes.MediaSize.ISO_A5)
+                                .build()
+                );
+            } else {
+                // Fallback: share
+                Uri uri = FileProvider.getUriForFile(getContext(),
+                        getContext().getPackageName() + ".provider", file);
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(uri, "application/pdf");
+                intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(intent);
+            }
+
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "PDF error: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // ── Print all entries slip (summary) ──
+    private void printAllSlipsPdf() {
+        if (sessionEntries.isEmpty()) {
+            Toast.makeText(getContext(), "Koi entry nahi hai!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String dairyName = getDairyName();
+
+        PdfDocument doc = new PdfDocument();
+        PdfDocument.PageInfo pageInfo =
+                new PdfDocument.PageInfo.Builder(595, 842, 1).create();
+        PdfDocument.Page page = doc.startPage(pageInfo);
+        Canvas canvas = page.getCanvas();
+        Paint p = new Paint();
+        p.setAntiAlias(true);
+
+        int y = 45;
+        int left = 40;
+
+        // Dairy Name
+        p.setTextSize(22);
+        p.setTypeface(Typeface.DEFAULT_BOLD);
+        p.setColor(Color.parseColor("#1B5E20"));
+        canvas.drawText(dairyName, left, y, p);
+        y += 26;
+
+        // Subtitle
+        p.setTextSize(12);
+        p.setTypeface(Typeface.DEFAULT);
+        p.setColor(Color.DKGRAY);
+        canvas.drawText("Collection Slip  |  " + selectedShift + " Shift  |  " +
+                etDate.getText().toString(), left, y, p);
+        y += 8;
+
+        // Divider
+        p.setColor(Color.parseColor("#1B5E20"));
+        p.setStrokeWidth(1.5f);
+        canvas.drawLine(left, y, 555, y, p);
+        y += 18;
+
+        // Table Header
+        p.setTextSize(11);
+        p.setTypeface(Typeface.DEFAULT_BOLD);
+        p.setColor(Color.parseColor("#1B5E20"));
+        int[] cols = {left, left+60, left+180, left+240, left+295, left+365, left+440};
+        canvas.drawText("Code",    cols[0], y, p);
+        canvas.drawText("Member",  cols[1], y, p);
+        canvas.drawText("Milk L",  cols[2], y, p);
+        canvas.drawText("Fat",     cols[3], y, p);
+        canvas.drawText("Rate",    cols[4], y, p);
+        canvas.drawText("PF Ded.", cols[5], y, p);
+        canvas.drawText("Net Amt", cols[6], y, p);
+        y += 6;
+        p.setStrokeWidth(1f);
+        p.setColor(Color.parseColor("#1B5E20"));
+        canvas.drawLine(left, y, 555, y, p);
+        y += 14;
+
+        // Rows
+        double grandGross = 0, grandPf = 0;
+        p.setTypeface(Typeface.DEFAULT);
+        p.setTextSize(11);
+
+        for (MilkEntry e : sessionEntries) {
+            Customer c    = findCustomer(e.cid);
+            String name   = c != null ? c.name : e.cid;
+            String code   = c != null ? c.memberCode : "-";
+            double gross  = e.qty * e.rate;
+            double pf     = e.qty * pfPerLiter;
+            double net    = gross - pf;
+            grandGross   += gross;
+            grandPf      += pf;
+
+            p.setColor(Color.BLACK);
+            canvas.drawText(code,  cols[0], y, p);
+            canvas.drawText(name,  cols[1], y, p);
+            canvas.drawText(String.format(Locale.getDefault(), "%.1f", e.qty),  cols[2], y, p);
+            canvas.drawText(String.format(Locale.getDefault(), "%.1f", e.fat),  cols[3], y, p);
+            canvas.drawText(String.format(Locale.getDefault(), "%.2f", e.rate), cols[4], y, p);
+            p.setColor(Color.parseColor("#C62828"));
+            canvas.drawText(String.format(Locale.getDefault(), "%.2f", pf),     cols[5], y, p);
+            p.setColor(Color.parseColor("#2E7D32"));
+            canvas.drawText(String.format(Locale.getDefault(), "%.2f", net),    cols[6], y, p);
+            y += 18;
+        }
+
+        // Grand Total
+        y += 4;
+        p.setColor(Color.DKGRAY);
+        p.setStrokeWidth(0.8f);
+        canvas.drawLine(left, y, 555, y, p);
+        y += 16;
+        p.setTypeface(Typeface.DEFAULT_BOLD);
+        p.setTextSize(12);
+        p.setColor(Color.BLACK);
+        canvas.drawText("TOTAL:", cols[4], y, p);
+        p.setColor(Color.parseColor("#C62828"));
+        canvas.drawText(String.format(Locale.getDefault(), "%.2f", grandPf), cols[5], y, p);
+        p.setColor(Color.parseColor("#2E7D32"));
+        canvas.drawText(String.format(Locale.getDefault(), "%.2f", grandGross - grandPf),
+                cols[6], y, p);
+        y += 30;
+
+        // Footer
+        p.setTextSize(10);
+        p.setTypeface(Typeface.DEFAULT);
+        p.setColor(Color.GRAY);
+        canvas.drawText("Generated by Dairy Hisaab App", left, y, p);
+
+        doc.finishPage(page);
+
+        try {
+            File dir = getContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
+            if (dir != null && !dir.exists()) dir.mkdirs();
+            String fileName = "slip_" + etDate.getText().toString()
+                    + "_" + selectedShift + ".pdf";
+            File file = new File(dir, fileName);
+            doc.writeTo(new FileOutputStream(file));
+            doc.close();
+
+            PrintManager printManager = (PrintManager)
+                    getContext().getSystemService(android.content.Context.PRINT_SERVICE);
+            if (printManager != null) {
+                FilePrintAdapter adapter =
+                        new FilePrintAdapter(getContext(), file, "Slip_" + c.name);
+                printManager.print(
+                        "DailySlip_" + etDate.getText().toString(),
+                        adapter,
+                        new PrintAttributes.Builder()
+                                .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                                .build()
+                );
+            } else {
+                Uri uri = FileProvider.getUriForFile(getContext(),
+                        getContext().getPackageName() + ".provider", file);
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(uri, "application/pdf");
+                intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(intent);
+            }
+
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "PDF error: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private String getDairyName() {
+        String dairyName = "Dairy Hisaab";
+        try {
+            com.google.firebase.auth.FirebaseUser user =
+                    FirebaseAuth.getInstance().getCurrentUser();
+            if (user != null && user.getDisplayName() != null
+                    && !user.getDisplayName().isEmpty()) {
+                dairyName = user.getDisplayName();
+            }
+        } catch (Exception ignored) {}
+        return dairyName;
     }
 
     private TextView makeCell(String text, int widthDp, boolean bold, String color) {
@@ -338,7 +749,6 @@ public class DailyEntryFragment extends Fragment {
         return (int) (val * getResources().getDisplayMetrics().density);
     }
 
-    // ── Load saved entries ──
     private void loadEntriesForCurrentDateShift() {
         entryList.removeAllViews();
         sessionEntries.clear();
@@ -373,179 +783,6 @@ public class DailyEntryFragment extends Fragment {
                 sessionEntries.size(), gross, pf, net));
     }
 
-    // ── Print Slip PDF ──
-    private void printSlipPdf() {
-        if (sessionEntries.isEmpty()) {
-            Toast.makeText(getContext(), "Koi entry nahi hai!", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Dairy naam Firebase se
-        String dairyName = "Dairy Hisaab";
-        try {
-            com.google.firebase.auth.FirebaseUser user =
-                    FirebaseAuth.getInstance().getCurrentUser();
-            if (user != null && user.getDisplayName() != null
-                    && !user.getDisplayName().isEmpty()) {
-                dairyName = user.getDisplayName();
-            }
-        } catch (Exception ignored) {}
-
-        PdfDocument doc = new PdfDocument();
-        PdfDocument.PageInfo pageInfo =
-                new PdfDocument.PageInfo.Builder(595, 842, 1).create();
-        PdfDocument.Page page = doc.startPage(pageInfo);
-        Canvas canvas = page.getCanvas();
-        Paint p = new Paint();
-        p.setAntiAlias(true);
-
-        int y = 45;
-        int left = 40;
-
-        // ── Dairy Name ──
-        p.setTextSize(22);
-        p.setTypeface(Typeface.DEFAULT_BOLD);
-        p.setColor(Color.parseColor("#1B5E20"));
-        canvas.drawText(dairyName, left, y, p);
-        y += 26;
-
-        // ── Subtitle ──
-        p.setTextSize(12);
-        p.setTypeface(Typeface.DEFAULT);
-        p.setColor(Color.DKGRAY);
-        canvas.drawText("Collection Slip  |  " + selectedShift + " Shift  |  " +
-                etDate.getText().toString(), left, y, p);
-        y += 8;
-
-        // ── Divider ──
-        p.setColor(Color.parseColor("#1B5E20"));
-        p.setStrokeWidth(1.5f);
-        canvas.drawLine(left, y, 555, y, p);
-        y += 18;
-
-        // ── Member summary (single entry slip style) ──
-        // Agar sirf ek member ki entry ho to uski detail upar dikhao
-        if (sessionEntries.size() == 1) {
-            MilkEntry e  = sessionEntries.get(0);
-            Customer  c  = findCustomer(e.cid);
-            if (c != null) {
-                p.setTextSize(13);
-                p.setTypeface(Typeface.DEFAULT_BOLD);
-                p.setColor(Color.BLACK);
-                canvas.drawText("Member: " + c.name, left, y, p);
-                y += 18;
-                p.setTypeface(Typeface.DEFAULT);
-                p.setTextSize(12);
-                p.setColor(Color.DKGRAY);
-                String fh = (c.fatherHusband != null && !c.fatherHusband.isEmpty())
-                        ? "S/o W/o: " + c.fatherHusband : "";
-                if (!fh.isEmpty()) { canvas.drawText(fh, left, y, p); y += 16; }
-                canvas.drawText("Code No.: " + c.memberCode +
-                        (c.uniqueId != null && !c.uniqueId.isEmpty()
-                                ? "   Un.No.: " + c.uniqueId : ""), left, y, p);
-                y += 20;
-                p.setStrokeWidth(0.5f);
-                p.setColor(Color.LTGRAY);
-                canvas.drawLine(left, y, 555, y, p);
-                y += 16;
-            }
-        }
-
-        // ── Table Header ──
-        p.setTextSize(11);
-        p.setTypeface(Typeface.DEFAULT_BOLD);
-        p.setColor(Color.parseColor("#1B5E20"));
-        int[] cols = {left, left+60, left+180, left+240, left+295, left+365, left+440};
-        canvas.drawText("Code",    cols[0], y, p);
-        canvas.drawText("Member",  cols[1], y, p);
-        canvas.drawText("Milk L",  cols[2], y, p);
-        canvas.drawText("Fat",     cols[3], y, p);
-        canvas.drawText("Rate",    cols[4], y, p);
-        canvas.drawText("PF Ded.", cols[5], y, p);
-        canvas.drawText("Net Amt", cols[6], y, p);
-        y += 6;
-        p.setStrokeWidth(1f);
-        p.setColor(Color.parseColor("#1B5E20"));
-        canvas.drawLine(left, y, 555, y, p);
-        y += 14;
-
-        // ── Rows ──
-        double grandGross = 0, grandPf = 0;
-        p.setTypeface(Typeface.DEFAULT);
-        p.setTextSize(11);
-
-        for (MilkEntry e : sessionEntries) {
-            Customer c    = findCustomer(e.cid);
-            String name   = c != null ? c.name : e.cid;
-            String code   = c != null ? c.memberCode : "-";
-            double gross  = e.qty * e.rate;
-            double pf     = e.qty * pfPerLiter;
-            double net    = gross - pf;
-            grandGross   += gross;
-            grandPf      += pf;
-
-            p.setColor(Color.BLACK);
-            canvas.drawText(code,  cols[0], y, p);
-            canvas.drawText(name,  cols[1], y, p);
-            canvas.drawText(String.format(Locale.getDefault(), "%.1f", e.qty),  cols[2], y, p);
-            canvas.drawText(String.format(Locale.getDefault(), "%.1f", e.fat),  cols[3], y, p);
-            canvas.drawText(String.format(Locale.getDefault(), "%.2f", e.rate), cols[4], y, p);
-            p.setColor(Color.parseColor("#C62828"));
-            canvas.drawText(String.format(Locale.getDefault(), "%.2f", pf),     cols[5], y, p);
-            p.setColor(Color.parseColor("#2E7D32"));
-            canvas.drawText(String.format(Locale.getDefault(), "%.2f", net),    cols[6], y, p);
-            y += 18;
-        }
-
-        // ── Grand Total ──
-        y += 4;
-        p.setColor(Color.DKGRAY);
-        p.setStrokeWidth(0.8f);
-        canvas.drawLine(left, y, 555, y, p);
-        y += 16;
-        p.setTypeface(Typeface.DEFAULT_BOLD);
-        p.setTextSize(12);
-        p.setColor(Color.BLACK);
-        canvas.drawText("TOTAL:", cols[4], y, p);
-        p.setColor(Color.parseColor("#C62828"));
-        canvas.drawText(String.format(Locale.getDefault(), "%.2f", grandPf), cols[5], y, p);
-        p.setColor(Color.parseColor("#2E7D32"));
-        canvas.drawText(String.format(Locale.getDefault(), "%.2f", grandGross - grandPf),
-                cols[6], y, p);
-        y += 30;
-
-        // ── Footer ──
-        p.setTextSize(10);
-        p.setTypeface(Typeface.DEFAULT);
-        p.setColor(Color.GRAY);
-        canvas.drawText("Generated by Dairy Hisaab App", left, y, p);
-
-        doc.finishPage(page);
-
-        // ── Save & Open ──
-        try {
-            File dir = getContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
-            if (dir != null && !dir.exists()) dir.mkdirs();
-            String fileName = "slip_" + etDate.getText().toString()
-                    + "_" + selectedShift + ".pdf";
-            File file = new File(dir, fileName);
-            doc.writeTo(new FileOutputStream(file));
-            doc.close();
-
-            Uri uri = FileProvider.getUriForFile(getContext(),
-                    getContext().getPackageName() + ".provider", file);
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(uri, "application/pdf");
-            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(intent);
-
-        } catch (Exception e) {
-            Toast.makeText(getContext(), "PDF error: " + e.getMessage(),
-                    Toast.LENGTH_LONG).show();
-        }
-    }
-
-    // ── Date helpers ──
     private void openDatePicker() {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -557,6 +794,7 @@ public class DailyEntryFragment extends Fragment {
                     java.util.Calendar nc = java.util.Calendar.getInstance();
                     nc.set(y, m, d);
                     etDate.setText(sdf.format(nc.getTime()));
+                    cancelEditMode();
                     loadEntriesForCurrentDateShift();
                 },
                 cal.get(java.util.Calendar.YEAR),
@@ -575,6 +813,7 @@ public class DailyEntryFragment extends Fragment {
             cal.setTime(d);
             cal.add(java.util.Calendar.DAY_OF_MONTH, days);
             etDate.setText(sdf.format(cal.getTime()));
+            cancelEditMode();
             loadEntriesForCurrentDateShift();
         } catch (Exception e) {
             Toast.makeText(getContext(), "Date error!", Toast.LENGTH_SHORT).show();
@@ -594,6 +833,7 @@ public class DailyEntryFragment extends Fragment {
             btnMorning.setBackgroundColor(Color.TRANSPARENT);
             btnMorning.setTextColor(Color.WHITE);
         }
+        cancelEditMode();
         loadEntriesForCurrentDateShift();
     }
-                            }
+}
