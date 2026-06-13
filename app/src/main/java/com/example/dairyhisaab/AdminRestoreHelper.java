@@ -2,7 +2,7 @@ package com.example.dairyhisaab;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.Context;
+import android.content.Intent;
 import android.widget.Toast;
 import androidx.fragment.app.FragmentActivity;
 import java.util.HashMap;
@@ -73,26 +73,52 @@ public class AdminRestoreHelper {
 
     private static void doRestore(FragmentActivity activity, DairyDataManager dm, FirebaseManager fm, String requestId, Runnable onSuccess) {
         ProgressDialog pd = new ProgressDialog(activity);
-        pd.setMessage("Cloud se data la raha hai...");
+        pd.setMessage("☁️ Cloud se data la raha hai...");
         pd.setCancelable(false);
         pd.show();
 
         fm.downloadAllData(new FirebaseManager.DownloadCallback() {
-            @Override public void onSuccess(java.util.Map<String, Object> data) {
+            @Override
+            public void onSuccess(java.util.Map<String, Object> data) {
                 activity.runOnUiThread(() -> {
                     pd.dismiss();
                     try {
                         fm.restoreData(dm, data);
-                        com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("restore_requests").document(requestId).delete();
-                        Toast.makeText(activity, "Restore Successful!", Toast.LENGTH_LONG).show();
-                        if (onSuccess != null) onSuccess.run();
+
+                        // Request document delete karo
+                        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                            .collection("restore_requests").document(requestId).delete();
+
+                        Toast.makeText(activity,
+                            "✅ Restore Successful!\nApp ab reload ho rahi hai...",
+                            Toast.LENGTH_LONG).show();
+
+                        // ✅ BUG FIX #2: App ko restart karo taaki saare fragments
+                        //    fresh data load karein. Pehle sirf BackupFragment ka
+                        //    status update hota tha, baaki screens purana data dikhati theen.
+                        new android.os.Handler().postDelayed(() -> {
+                            Intent intent = new Intent(activity, MainActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                    | Intent.FLAG_ACTIVITY_NEW_TASK
+                                    | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            activity.startActivity(intent);
+                            activity.finish();
+                        }, 1500); // 1.5 sec delay taaki toast dikhe
+
                     } catch (Exception ex) {
-                        Toast.makeText(activity, "Error: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(activity,
+                            "❌ Restore Error: " + ex.getMessage(),
+                            Toast.LENGTH_LONG).show();
                     }
                 });
             }
-            @Override public void onFailure(String error) {
-                activity.runOnUiThread(() -> { pd.dismiss(); Toast.makeText(activity, error, Toast.LENGTH_LONG).show(); });
+
+            @Override
+            public void onFailure(String error) {
+                activity.runOnUiThread(() -> {
+                    pd.dismiss();
+                    Toast.makeText(activity, "❌ " + error, Toast.LENGTH_LONG).show();
+                });
             }
         });
     }
