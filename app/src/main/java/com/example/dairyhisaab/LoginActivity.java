@@ -162,9 +162,7 @@ public class LoginActivity extends AppCompatActivity {
                         mAuth.getCurrentUser().sendEmailVerification()
                                 .addOnCompleteListener(emailTask -> {
                                     mAuth.signOut();
-                                    Toast.makeText(this,
-                                            "Account ban gaya! " + email + " pe verification link bheja gaya.",
-                                            Toast.LENGTH_LONG).show();
+                                    Toast.makeText(this, "Account ban gaya! " + email + " pe verification link bheja gaya.", Toast.LENGTH_LONG).show();
                                     toggleMode();
                                 });
                     } else {
@@ -172,6 +170,14 @@ public class LoginActivity extends AppCompatActivity {
                     }
                 });
     }
+
+    private void toggleMode() {
+        isLoginMode = !isLoginMode;
+        if (isLoginMode) {
+            btnLogin.setVisibility(View.VISIBLE);
+            layoutName.setVisibility(View.GONE);
+            btnRegister.setVisibility(View.GONE);
+            tvToggle.setText("Naya account banao? Register karo");
         } else {
             btnLogin.setVisibility(View.GONE);
             layoutName.setVisibility(View.VISIBLE);
