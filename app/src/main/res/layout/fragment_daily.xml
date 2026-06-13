@@ -128,7 +128,7 @@
         android:padding="12dp"
         android:elevation="4dp">
 
-        <!-- Row 1: Code + Name -->
+        <!-- Row 1: Code + Name + Animal -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -156,11 +156,10 @@
                 android:layout_weight="1"
                 android:text="— Member naam —"
                 android:textSize="13sp"
-                android:textColor="#388E3C"
+                android:textColor="#9E9E9E"
                 android:textStyle="bold"
                 android:layout_marginHorizontal="10dp"/>
 
-            <!-- Animal Toggle -->
             <TextView
                 android:id="@+id/tvAnimalToggle"
                 android:layout_width="60dp"
@@ -175,7 +174,7 @@
                 android:focusable="true"/>
         </LinearLayout>
 
-        <!-- Row 2: Weight + Fat + Amount + Save -->
+        <!-- Row 2: Qty + Fat + Amount + Save -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -205,7 +204,7 @@
                 android:inputType="numberDecimal"
                 android:background="@drawable/bg_search_box"
                 android:layout_marginHorizontal="6dp"
-                android:imeOptions="actionNext"/>
+                android:imeOptions="actionDone"/>
 
             <TextView
                 android:id="@+id/tvQuickAmount"
@@ -221,7 +220,7 @@
 
             <Button
                 android:id="@+id/btnQuickSave"
-                android:layout_width="60dp"
+                android:layout_width="56dp"
                 android:layout_height="44dp"
                 android:text="✔"
                 android:textSize="18sp"
@@ -232,22 +231,22 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- SAVED ENTRIES LIST HEADER -->
+    <!-- COLUMN HEADERS -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:background="#E8F5E9"
         android:paddingHorizontal="12dp"
-        android:paddingVertical="6dp">
+        android:paddingVertical="7dp">
 
         <TextView
-            android:layout_width="40dp"
+            android:layout_width="42dp"
             android:layout_height="wrap_content"
             android:text="Code"
             android:textColor="#1B5E20"
             android:textStyle="bold"
-            android:textSize="11sp"/>
+            android:textSize="10sp"/>
 
         <TextView
             android:layout_width="0dp"
@@ -256,46 +255,64 @@
             android:text="Member"
             android:textColor="#1B5E20"
             android:textStyle="bold"
-            android:textSize="11sp"/>
-
-        <TextView
-            android:layout_width="45dp"
-            android:layout_height="wrap_content"
-            android:text="Qty"
-            android:gravity="center"
-            android:textColor="#1B5E20"
-            android:textStyle="bold"
-            android:textSize="11sp"/>
+            android:textSize="10sp"/>
 
         <TextView
             android:layout_width="40dp"
+            android:layout_height="wrap_content"
+            android:text="Milk"
+            android:gravity="center"
+            android:textColor="#1B5E20"
+            android:textStyle="bold"
+            android:textSize="10sp"/>
+
+        <TextView
+            android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:text="Fat"
             android:gravity="center"
             android:textColor="#1B5E20"
             android:textStyle="bold"
-            android:textSize="11sp"/>
+            android:textSize="10sp"/>
 
         <TextView
-            android:layout_width="60dp"
+            android:layout_width="42dp"
             android:layout_height="wrap_content"
-            android:text="Amount"
-            android:gravity="end"
-            android:textColor="#1B5E20"
-            android:textStyle="bold"
-            android:textSize="11sp"/>
-
-        <TextView
-            android:layout_width="50dp"
-            android:layout_height="wrap_content"
-            android:text="Action"
+            android:text="Rate"
             android:gravity="center"
             android:textColor="#1B5E20"
             android:textStyle="bold"
-            android:textSize="11sp"/>
+            android:textSize="10sp"/>
+
+        <TextView
+            android:layout_width="44dp"
+            android:layout_height="wrap_content"
+            android:text="PF Ded"
+            android:gravity="center"
+            android:textColor="#C62828"
+            android:textStyle="bold"
+            android:textSize="10sp"/>
+
+        <TextView
+            android:layout_width="56dp"
+            android:layout_height="wrap_content"
+            android:text="Net Amt"
+            android:gravity="end"
+            android:textColor="#1B5E20"
+            android:textStyle="bold"
+            android:textSize="10sp"/>
+
+        <TextView
+            android:layout_width="44dp"
+            android:layout_height="wrap_content"
+            android:text="Del"
+            android:gravity="center"
+            android:textColor="#9E9E9E"
+            android:textStyle="bold"
+            android:textSize="10sp"/>
     </LinearLayout>
 
-    <!-- SAVED ENTRIES SCROLLABLE LIST -->
+    <!-- ENTRY LIST -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -309,7 +326,7 @@
             android:paddingBottom="8dp"/>
     </ScrollView>
 
-    <!-- BOTTOM: Total + Print -->
+    <!-- BOTTOM TOTAL + PRINT -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -327,7 +344,7 @@
             android:text="Total: 0 entries | ₹0.00"
             android:textColor="#FFFFFF"
             android:textStyle="bold"
-            android:textSize="13sp"/>
+            android:textSize="11sp"/>
 
         <Button
             android:id="@+id/btnPrintSlip"
