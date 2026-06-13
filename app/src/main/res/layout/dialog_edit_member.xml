@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✏️ Edit Member All Details"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:textColor="@color/dairy_blue_primary"
+            android:layout_marginBottom="16dp"/>
+
+        <EditText android:id="@+id/etEditCode" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Member Code" android:background="@drawable/bg_input_field" android:padding="10dp" android:layout_marginBottom="10dp"/>
+        
+        <EditText android:id="@+id/etEditName" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Member Name" android:background="@drawable/bg_input_field" android:padding="10dp" android:layout_marginBottom="10dp"/>
+        
+        <EditText android:id="@+id/etEditFather" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Father/Husband Name" android:background="@drawable/bg_input_field" android:padding="10dp" android:layout_marginBottom="10dp"/>
+        
+        <EditText android:id="@+id/etEditPhone" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Mobile Number" android:inputType="phone" android:background="@drawable/bg_input_field" android:padding="10dp" android:layout_marginBottom="10dp"/>
+        
+        <EditText android:id="@+id/etEditUniqueId" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Unique ID" android:background="@drawable/bg_input_field" android:padding="10dp" android:layout_marginBottom="10dp"/>
+        
+        <EditText android:id="@+id/etEditAadhar" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Aadhaar No." android:inputType="number" android:background="@drawable/bg_input_field" android:padding="10dp" android:layout_marginBottom="10dp"/>
+        
+        <EditText android:id="@+id/etEditJanAadhar" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Jan Aadhaar No." android:background="@drawable/bg_input_field" android:padding="10dp" android:layout_marginBottom="10dp"/>
+        
+        <EditText android:id="@+id/etEditBankName" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Bank Name" android:background="@drawable/bg_input_field" android:padding="10dp" android:layout_marginBottom="10dp"/>
+        
+        <EditText android:id="@+id/etEditBankAcc" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Bank Account No." android:inputType="number" android:background="@drawable/bg_input_field" android:padding="10dp" android:layout_marginBottom="10dp"/>
+        
+        <EditText android:id="@+id/etEditIfsc" android:layout_width="match_parent" android:layout_height="45dp" android:hint="IFSC Code" android:background="@drawable/bg_input_field" android:padding="10dp" android:layout_marginBottom="20dp"/>
+
+        <Button
+            android:id="@+id/btnSaveEdit"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="SAVE ALL CHANGES"
+            android:backgroundTint="@color/dairy_blue_primary"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"/>
+    </LinearLayout>
+</ScrollView>

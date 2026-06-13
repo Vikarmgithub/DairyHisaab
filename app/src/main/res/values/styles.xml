@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- 💡 ऊपर का मुख्य हेडर और बटन्स अब प्रीमियम ब्लू होंगे -->
+        <item name="colorPrimary">@color/dairy_blue_primary</item>
+        
+        <!-- 💡 सबसे ऊपर की स्टेटस बार (जहाँ नेटवर्क और टाइम दिखता है) वो गहरा नीला होगा -->
+        <item name="colorPrimaryDark">@color/bg_dark_blue</item>
+        
+        <!-- 💡 ऐप के कर्सर और छोटे हाइलाइट्स लाइट ब्लू होंगे -->
+        <item name="colorAccent">@color/dairy_blue_light</item>
+        
+        <!-- 💡 पूरे ऐप का बैकग्राउंड अब वो पीलापन हटाकर साफ़ ब्लू-व्हाइट शेड में दिखेगा -->
+        <item name="android:windowBackground">#F4F7FC</item>
+    </style>
+</resources>

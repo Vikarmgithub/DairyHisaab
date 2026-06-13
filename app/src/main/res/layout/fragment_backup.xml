@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F4F7FC">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="32dp"
+            android:paddingBottom="20dp"
+            android:paddingHorizontal="20dp"
+            android:background="@drawable/bg_gradient_header">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🗄 Backup &amp; Restore"
+                android:textColor="#FFFFFF"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+                
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="App delete hone ya phone change hone par data bachane ke liye backup karo"
+                android:textColor="#90CAF9"
+                android:textSize="12sp"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_section_card"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp"
+                android:elevation="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="☁️ Cloud Backup (Firebase)"
+                    android:textSize="15sp"
+                    android:textColor="@color/dairy_blue_primary"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvGoogleAccount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="❌ Login nahi hai"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_muted"
+                    android:layout_marginBottom="12dp"
+                    android:paddingStart="2dp"/>
+
+                <Button
+                    android:id="@+id/btnDriveBackup"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="☁️ Cloud Backup Karo"
+                    android:backgroundTint="@color/dairy_blue_primary"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <Button
+                    android:id="@+id/btnDriveRestore"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="⬇️ Cloud Se Restore Karo"
+                    android:backgroundTint="@color/dairy_blue_light"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <Button
+                    android:id="@+id/btnSignOut"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="🚪 Sign Out"
+                    android:backgroundTint="#78909C"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:visibility="gone"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_section_card"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp"
+                android:elevation="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📁 Local Backup"
+                    android:textSize="15sp"
+                    android:textColor="@color/dairy_blue_primary"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp"/>
+
+                <Button
+                    android:id="@+id/btnBackup"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="💾 Local Backup Karo"
+                    android:backgroundTint="@color/dairy_blue_dark"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <Button
+                    android:id="@+id/btnRestore"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="📂 File Se Restore Karo"
+                    android:backgroundTint="@color/input_bg_blue"
+                    android:textColor="@color/dairy_blue_primary"
+                    android:textStyle="bold"
+                    style="?android:attr/borderlessButtonStyle"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_section_card"
+                android:padding="16dp"
+                android:elevation="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📊 Current Data Status"
+                    android:textSize="15sp"
+                    android:textColor="@color/text_dark"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvDataStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Loading..."
+                    android:textSize="13sp"
+                    android:textColor="#334155"
+                    android:fontFamily="monospace"
+                    android:background="#F8FAFC"
+                    android:padding="10dp"/>
+            </LinearLayout>
+
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

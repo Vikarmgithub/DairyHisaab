@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F4F7FC">
+
+    <!-- Top Header Area (Premium Gradient - Login Hui Dairy Ka Naam Yahan Dikhega) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="32dp"
+        android:paddingBottom="20dp"
+        android:paddingHorizontal="20dp"
+        android:background="@drawable/bg_gradient_header">
+        
+        <!-- Java ID: tvDairyHeader (Isme Java se auto-load hoga naam) -->
+        <TextView
+            android:id="@+id/tvDairyHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Monthly Reports"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+            
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hisaab-kitab ki report aur statements check karein"
+            android:textColor="#90CAF9"
+            android:textSize="12sp"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- CONTAINER FOR CARDS & FILTERS -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="14dp"
+        android:paddingTop="12dp">
+
+        <!-- REPORT TYPE TABS CARD (Teeno Options Cleanly Alag Kiye Hain) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/bg_section_card"
+            android:padding="8dp"
+            android:layout_marginBottom="10dp"
+            android:elevation="3dp"
+            android:weightSum="3">
+
+            <Button
+                android:id="@+id/btnTabBhugtan"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="Bhugtan"
+                android:textSize="11sp"
+                android:backgroundTint="#0D47A1"
+                android:textColor="#FFFFFF" />
+
+            <Button
+                android:id="@+id/btnTabStatement"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="Statement"
+                android:textSize="11sp"
+                android:backgroundTint="#ECEFF1"
+                android:textColor="#37474F"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/btnTabPFStatement"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="PF Report"
+                android:textSize="11sp"
+                android:backgroundTint="#ECEFF1"
+                android:textColor="#37474F" />
+        </LinearLayout>
+
+        <!-- Dynamic Context Title Indicator -->
+        <TextView
+            android:id="@+id/tvModeTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="💰 Bhugtan Report (Date to Date)"
+            android:textColor="#0D47A1"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp"
+            android:gravity="center_horizontal"/>
+
+        <!-- DATE & CUSTOMER FILTER CARD (Bhugtan aur Statement ke liye) -->
+        <LinearLayout
+            android:id="@+id/layoutFilters"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_section_card"
+            android:padding="12dp"
+            android:layout_marginBottom="10dp"
+            android:elevation="3dp"
+            android:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="2"
+                android:layout_marginBottom="6dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="From (shuru)"
+                        android:textSize="10.5sp"
+                        android:textColor="@color/dairy_blue_light"
+                        android:textStyle="bold"/>
+                    <EditText
+                        android:id="@+id/etFrom"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:hint="YYYY-MM-DD"
+                        android:textSize="13sp"
+                        android:paddingStart="8dp"
+                        android:background="@drawable/bg_input_field"
+                        android:textColor="@color/text_dark"
+                        android:layout_marginTop="4dp"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:paddingStart="8dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="To (ant tak)"
+                        android:textSize="10.5sp"
+                        android:textColor="@color/dairy_blue_light"
+                        android:textStyle="bold"/>
+                    <EditText
+                        android:id="@+id/etTo"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:hint="YYYY-MM-DD"
+                        android:textSize="13sp"
+                        android:paddingStart="8dp"
+                        android:background="@drawable/bg_input_field"
+                        android:textColor="@color/text_dark"
+                        android:layout_marginTop="4dp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Customer (naam / code)"
+                android:textSize="10.5sp"
+                android:textColor="@color/dairy_blue_light"
+                android:textStyle="bold"/>
+            
+            <EditText
+                android:id="@+id/etCustomerFilter"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:hint="Sab members"
+                android:textSize="13sp"
+                android:paddingStart="8dp"
+                android:background="@drawable/bg_input_field"
+                android:textColor="@color/text_dark"
+                android:inputType="text"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="10dp"/>
+
+            <Button
+                android:id="@+id/btnGenerate"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:text="🔍 Data Load Karein"
+                android:backgroundTint="@color/dairy_blue_primary"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="13sp"/>
+        </LinearLayout>
+
+        <!-- MONTH FILTER CARD (Sirf PF Report Ke Liye - Initially Hidden) -->
+        <LinearLayout
+            android:id="@+id/layoutPFMonthSelector"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_section_card"
+            android:padding="12dp"
+            android:layout_marginBottom="10dp"
+            android:elevation="3dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mahina Select Karein (PF Report)"
+                android:textSize="11sp"
+                android:textColor="@color/dairy_blue_light"
+                android:textStyle="bold"/>
+                
+            <Spinner
+                android:id="@+id/spinnerPfMonths"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_input_field"/>
+
+            <Button
+                android:id="@+id/btnGeneratePF"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:text="🏦 Month PF Calculate Karein"
+                android:backgroundTint="#1B365D"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="13sp"/>
+        </LinearLayout>
+
+        <!-- EXPORT OPTIONS PANEL (Excel, PDF aur Print buttons ke liye) -->
+        <LinearLayout
+            android:id="@+id/layoutExportButtons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:background="@drawable/bg_section_card"
+            android:padding="12dp"
+            android:layout_marginBottom="10dp"
+            android:elevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="6dp">
+
+                <Button
+                    android:id="@+id/btnExportExcel"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="📊 Excel"
+                    android:backgroundTint="@color/accent_green"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:layout_marginEnd="6dp"
+                    android:padding="2dp"/>
+
+                <Button
+                    android:id="@+id/btnExportPdf"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="📄 PDF"
+                    android:backgroundTint="@color/accent_red"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:layout_marginEnd="6dp"
+                    android:padding="2dp"/>
+
+                <Button
+                    android:id="@+id/btnPrint"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="🖨️ Print"
+                    android:backgroundTint="@color/dairy_blue_dark"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:padding="2dp"/>
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnWhatsApp"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:text="💬 WhatsApp pe Share karo"
+                android:backgroundTint="#25D366"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="12sp"
+                android:visibility="gone"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- DYNAMIC REPORT LOG CONTAINER -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/reportList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="14dp"
+            android:paddingBottom="16dp"/>
+    </ScrollView>
+
+    <!-- Java Hook controllers -->
+    <Button
+        android:id="@+id/btnStatement"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
+</LinearLayout>

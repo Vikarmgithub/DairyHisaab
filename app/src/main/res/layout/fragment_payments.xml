@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F4F7FC">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="32dp"
+        android:paddingBottom="20dp"
+        android:paddingHorizontal="20dp"
+        android:background="@drawable/bg_gradient_header">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Payments"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Members transaction management"
+            android:textColor="#90CAF9"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_margin="16dp"
+                android:padding="16dp"
+                android:background="@drawable/bg_section_card"
+                android:elevation="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="➕ Naya Payment Form"
+                    android:textColor="@color/dairy_blue_primary"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="12dp"/>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="PAYMENT DATE" android:textColor="@color/dairy_blue_light" android:textSize="10sp" android:textStyle="bold"/>
+                <EditText 
+                    android:id="@+id/etPayDate"
+                    android:layout_width="match_parent" 
+                    android:layout_height="44dp" 
+                    android:hint="Select Payment Date" 
+                    android:focusable="false"
+                    android:clickable="true"
+                    android:paddingStart="12dp" 
+                    android:background="@drawable/bg_input_field" 
+                    android:textColor="@color/text_dark" 
+                    android:layout_marginTop="4dp" 
+                    android:layout_marginBottom="12dp"/>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SELECT MEMBER" android:textColor="@color/dairy_blue_light" android:textSize="10sp" android:textStyle="bold"/>
+                <Spinner
+                    android:id="@+id/spinnerMember"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_input_field"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="4dp"/>
+
+                <TextView 
+                    android:id="@+id/tvMemberInfo"
+                    android:layout_width="match_parent" 
+                    android:layout_height="wrap_content" 
+                    android:text="Member info will load here" 
+                    android:textColor="@color/text_muted" 
+                    android:textSize="12sp"
+                    android:layout_marginBottom="12dp"
+                    android:paddingHorizontal="4dp"/>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="AMOUNT (₹)" android:textColor="@color/dairy_blue_light" android:textSize="10sp" android:textStyle="bold"/>
+                <EditText 
+                    android:id="@+id/etAmount"
+                    android:layout_width="match_parent" 
+                    android:layout_height="44dp" 
+                    android:hint="Amount daalo" 
+                    android:paddingStart="12dp" 
+                    android:background="@drawable/bg_input_field" 
+                    android:textColor="@color/text_dark" 
+                    android:inputType="numberDecimal" 
+                    android:layout_marginTop="4dp" 
+                    android:layout_marginBottom="12dp"/>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="NOTE / REMARK" android:textColor="@color/dairy_blue_light" android:textSize="10sp" android:textStyle="bold"/>
+                <EditText 
+                    android:id="@+id/etNote"
+                    android:layout_width="match_parent" 
+                    android:layout_height="44dp" 
+                    android:hint="Koi tippani (Optional)" 
+                    android:paddingStart="12dp" 
+                    android:background="@drawable/bg_input_field" 
+                    android:textColor="@color/text_dark" 
+                    android:inputType="text" 
+                    android:layout_marginTop="4dp" 
+                    android:layout_marginBottom="16dp"/>
+
+                <Button
+                    android:id="@+id/btnSavePayment"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:text="✅ Save Payment"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    android:backgroundTint="@color/dairy_blue_primary"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginHorizontal="16dp"
+                android:padding="16dp"
+                android:background="@drawable/bg_section_card"
+                android:elevation="4dp">
+                
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📊 Recent Payments Log"
+                    android:textColor="@color/text_dark"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="8dp"/>
+
+                <LinearLayout
+                    android:id="@+id/paymentsList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
