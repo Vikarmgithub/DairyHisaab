@@ -34,7 +34,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText etEmail, etPassword, etName;
     private android.view.View layoutName;
     private TextView tvToggle;
-    private boolean isLoginMode = false;
+    private boolean isLoginMode = true;
 
 
 
