@@ -57,6 +57,7 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         initViews();
+        setupLoginMode();
         setupClickListeners();
         setupGoogleSignIn();
     }
@@ -148,6 +149,14 @@ public class LoginActivity extends AppCompatActivity {
                         Toast.makeText(this, "Registration failed: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
+    }
+
+    private void setupLoginMode() {
+        isLoginMode = true;
+        btnLogin.setVisibility(View.VISIBLE);
+        layoutName.setVisibility(View.GONE);
+        btnRegister.setVisibility(View.GONE);
+        tvToggle.setText("Naya account banao? Register karo");
     }
 
     private void toggleMode() {
