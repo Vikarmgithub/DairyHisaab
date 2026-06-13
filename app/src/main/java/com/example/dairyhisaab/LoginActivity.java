@@ -30,7 +30,7 @@ public class LoginActivity extends AppCompatActivity {
     private GoogleSignInClient mGoogleSignInClient;
     private FirebaseAuth mAuth;
 
-    private Button btnGoogleSignIn, btnLogin, btnRegister;
+    private Button btnLogin, btnRegister;
     private EditText etEmail, etPassword, etName;
     private android.view.View layoutName;
     private TextView tvToggle;
