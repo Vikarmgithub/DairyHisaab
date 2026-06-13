@@ -7,7 +7,6 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -22,6 +21,7 @@ public class DairyDataManager {
     private static final String KEY_ENTRIES      = "dairy_entries";
     private static final String KEY_PAYMENTS     = "dairy_payments";
     private static final String KEY_RATE_HISTORY = "dairy_rateHistory";
+    private static final String KEY_PIN          = "dairy_delete_pin";
 
     private DairyDataManager(Context context) {
         prefs = context.getApplicationContext()
@@ -33,11 +33,21 @@ public class DairyDataManager {
         return instance;
     }
 
+    // ── PIN ──
+    public boolean hasPin() {
+        return prefs.contains(KEY_PIN);
+    }
+    public void savePin(String pin) {
+        prefs.edit().putString(KEY_PIN, pin).apply();
+    }
+    public boolean verifyPin(String pin) {
+        return pin != null && pin.equals(prefs.getString(KEY_PIN, ""));
+    }
+
     // ── Save / Load helpers ──
     private <T> void save(String key, List<T> list) {
         prefs.edit().putString(key, gson.toJson(list)).apply();
     }
-
     private <T> List<T> load(String key, Type type) {
         String json = prefs.getString(key, null);
         if (json == null) return new ArrayList<>();
@@ -76,9 +86,7 @@ public class DairyDataManager {
         RateEntry best = null;
         for (RateEntry r : history) {
             if (r.date.compareTo(date) <= 0) {
-                if (best == null || r.date.compareTo(best.date) > 0) {
-                    best = r;
-                }
+                if (best == null || r.date.compareTo(best.date) > 0) best = r;
             }
         }
         return best;
@@ -92,7 +100,6 @@ public class DairyDataManager {
         }
         return total;
     }
-
     public double totalPaid(String customerId) {
         double total = 0;
         for (Payment p : getPayments()) {
@@ -100,17 +107,14 @@ public class DairyDataManager {
         }
         return total;
     }
-
     public double outstanding(String customerId) {
         return totalBill(customerId) - totalPaid(customerId);
     }
 
-    // ── fat * rate / 100 + base ──
     public static double calcPPL(double fat, double rate, double base) {
         return Math.round((fat * rate / 100.0 + base) * 100.0) / 100.0;
     }
 
-    // ── Auto next member code: M001, M002... ──
     public String nextMemberCode() {
         List<Customer> customers = getCustomers();
         int max = 0;
