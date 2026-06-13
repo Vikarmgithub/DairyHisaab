@@ -45,7 +45,7 @@
             android:layout_height="48dp"
             android:layout_weight="1"
             android:layout_marginEnd="6dp"
-            android:text="âž• Naya Payment"
+            android:text="+ Naya Payment"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
             android:backgroundTint="#1a3c5e"/>
@@ -56,7 +56,7 @@
             android:layout_height="48dp"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
-            android:text="ðŸ“‹ Purane Payments"
+            android:text="Purane Payments"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
             android:backgroundTint="#6B7280"/>
@@ -89,7 +89,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="âž• Naya Payment Form"
+                    android:text="Naya Payment Form"
                     android:textColor="@color/dairy_blue_primary"
                     android:textStyle="bold"
                     android:textSize="14sp"
@@ -154,7 +154,7 @@
 
                 <!-- AMOUNT -->
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="AMOUNT (â‚¹)" android:textColor="@color/dairy_blue_light"
+                    android:text="AMOUNT (Rs.)" android:textColor="@color/dairy_blue_light"
                     android:textSize="10sp" android:textStyle="bold"/>
                 <EditText
                     android:id="@+id/etAmount"
@@ -207,7 +207,7 @@
                             android:id="@+id/btnPaidBy"
                             android:layout_width="match_parent"
                             android:layout_height="44dp"
-                            android:text="âœï¸ Paid By"
+                            android:text="Paid By"
                             android:backgroundTint="#1a3c5e"
                             android:textColor="#FFFFFF"
                             android:textSize="12sp"/>
@@ -230,7 +230,7 @@
                             android:id="@+id/btnReceivedBy"
                             android:layout_width="match_parent"
                             android:layout_height="44dp"
-                            android:text="âœï¸ Received By"
+                            android:text="Received By"
                             android:backgroundTint="#065f46"
                             android:textColor="#FFFFFF"
                             android:textSize="12sp"/>
@@ -248,7 +248,7 @@
                     android:id="@+id/btnSavePayment"
                     android:layout_width="match_parent"
                     android:layout_height="46dp"
-                    android:text="âœ… SAVE PAYMENT"
+                    android:text="SAVE PAYMENT"
                     android:textColor="@color/white"
                     android:textStyle="bold"
                     android:backgroundTint="@color/dairy_blue_primary"/>
@@ -284,7 +284,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="ðŸ” Transaction Dhundo"
+                    android:text="Transaction Dhundo"
                     android:textColor="@color/dairy_blue_primary"
                     android:textStyle="bold"
                     android:textSize="14sp"
@@ -344,7 +344,7 @@
                     android:id="@+id/btnSearchPayments"
                     android:layout_width="match_parent"
                     android:layout_height="46dp"
-                    android:text="ðŸ” DHUNDO"
+                    android:text="DHUNDO"
                     android:textColor="@color/white"
                     android:textStyle="bold"
                     android:backgroundTint="@color/dairy_blue_primary"/>
@@ -367,7 +367,7 @@
                     android:id="@+id/tvPrevResultTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="ðŸ“Š Transactions"
+                    android:text="Transactions"
                     android:textColor="@color/text_dark"
                     android:textStyle="bold"
                     android:textSize="14sp"
