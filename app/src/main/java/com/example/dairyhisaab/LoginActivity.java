@@ -21,10 +21,6 @@ import com.google.firebase.FirebaseException;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.GoogleAuthProvider;
-import com.google.firebase.auth.PhoneAuthCredential;
-import com.google.firebase.auth.PhoneAuthOptions;
-import com.google.firebase.auth.PhoneAuthProvider;
-import java.util.concurrent.TimeUnit;
 import com.google.firebase.auth.UserProfileChangeRequest;
 
 public class LoginActivity extends AppCompatActivity {
@@ -40,13 +36,7 @@ public class LoginActivity extends AppCompatActivity {
     private TextView tvToggle;
     private boolean isLoginMode = true;
 
-    private EditText etPhone, etOtp;
-    private Button btnSendOtp, btnVerifyOtp;
-    private LinearLayout layoutOtpVerify;
-    private TextView tvResendOtp;
 
-    private String mVerificationId;
-    private PhoneAuthProvider.ForceResendingToken mResendToken;
 
     private ProgressBar progressBar;
 
@@ -82,12 +72,7 @@ public class LoginActivity extends AppCompatActivity {
         etName = findViewById(R.id.etName);
         layoutName = findViewById(R.id.layoutName);
         tvToggle        = findViewById(R.id.tvToggle);
-        etPhone         = findViewById(R.id.etPhone);
         etOtp           = findViewById(R.id.etOtp);
-        btnSendOtp      = findViewById(R.id.btnSendOtp);
-        btnVerifyOtp    = findViewById(R.id.btnVerifyOtp);
-        layoutOtpVerify = findViewById(R.id.layoutOtpVerify);
-        tvResendOtp     = findViewById(R.id.tvResendOtp);
     }
 
     private void setupClickListeners() {
@@ -95,9 +80,6 @@ public class LoginActivity extends AppCompatActivity {
         btnRegister.setOnClickListener(v -> registerWithEmail());
         tvToggle.setOnClickListener(v -> toggleMode());
         btnGoogleSignIn.setOnClickListener(v -> signInWithGoogle());
-        btnSendOtp.setOnClickListener(v -> sendOtp());
-        btnVerifyOtp.setOnClickListener(v -> verifyOtp());
-        tvResendOtp.setOnClickListener(v -> sendOtp());
     }
 
     private void setupGoogleSignIn() {
@@ -189,127 +171,6 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     // ─── PHONE OTP ───
-
-    private void sendOtp() {
-        String phone = etPhone.getText().toString().trim();
-        if (!phone.startsWith("+")) {
-            phone = "+91" + phone;
-        }
-        if (phone.length() < 10) {
-            Toast.makeText(this, "Sahi mobile number daalo", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        showLoading(true);
-        btnSendOtp.setEnabled(false);
-
-        PhoneAuthOptions.Builder optionsBuilder = PhoneAuthOptions.newBuilder(mAuth)
-                .setPhoneNumber(phone)
-                .setTimeout(60L, TimeUnit.SECONDS)
-                .setActivity(this)
-                .setCallbacks(mCallbacks);
-
-        if (mResendToken != null) {
-            optionsBuilder.setForceResendingToken(mResendToken);
-        }
-        PhoneAuthProvider.verifyPhoneNumber(optionsBuilder.build());
-    }
-
-    private void verifyOtp() {
-        String otp = etOtp.getText().toString().trim();
-        if (otp.isEmpty() || otp.length() < 6) {
-            Toast.makeText(this, "6 digit OTP daalo", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (mVerificationId == null) {
-            Toast.makeText(this, "Pehle OTP bhejein", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        showLoading(true);
-        PhoneAuthCredential credential = PhoneAuthProvider.getCredential(mVerificationId, otp);
-        signInWithPhoneCredential(credential);
-    }
-
-    private final PhoneAuthProvider.OnVerificationStateChangedCallbacks mCallbacks =
-            new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-
-        @Override
-        public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {
-            showLoading(true);
-            signInWithPhoneCredential(credential);
-        }
-
-        @Override
-        public void onVerificationFailed(@NonNull FirebaseException e) {
-            showLoading(false);
-            btnSendOtp.setEnabled(true);
-            Toast.makeText(LoginActivity.this,
-                "OTP bhejna fail: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
-
-        @Override
-        public void onCodeSent(@NonNull String verificationId,
-                               @NonNull PhoneAuthProvider.ForceResendingToken token) {
-            showLoading(false);
-            mVerificationId = verificationId;
-            mResendToken = token;
-            layoutOtpVerify.setVisibility(View.VISIBLE);
-            tvResendOtp.setVisibility(View.VISIBLE);
-            btnSendOtp.setText("OTP Dobara Bhejo");
-            btnSendOtp.setEnabled(true);
-            Toast.makeText(LoginActivity.this, "OTP bhej diya! SMS check karo.", Toast.LENGTH_SHORT).show();
-        }
-    };
-
-    private void signInWithPhoneCredential(PhoneAuthCredential credential) {
-        mAuth.signInWithCredential(credential)
-                .addOnCompleteListener(this, task -> {
-                    showLoading(false);
-                    if (task.isSuccessful()) {
-                        FirebaseManager.getInstance().saveLoginInfo(this);
-                        doAutoBackup();
-                        goToMain();
-                    } else {
-                        Toast.makeText(this,
-                            "OTP galat hai ya expire ho gaya. Dobara try karo.",
-                            Toast.LENGTH_LONG).show();
-                    }
-                });
-    }
-
-    // ─── GOOGLE ───
-
-    private void signInWithGoogle() {
-        showLoading(true);
-        startActivityForResult(mGoogleSignInClient.getSignInIntent(), RC_SIGN_IN);
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == RC_SIGN_IN) {
-            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
-            try {
-                GoogleSignInAccount account = task.getResult(ApiException.class);
-                AuthCredential credential = GoogleAuthProvider.getCredential(account.getIdToken(), null);
-                mAuth.signInWithCredential(credential)
-                        .addOnCompleteListener(this, t -> {
-                            showLoading(false);
-                            if (t.isSuccessful()) {
-                                FirebaseManager.getInstance().saveLoginInfo(this);
-                                doAutoBackup();
-                                goToMain();
-                            } else {
-                                Toast.makeText(this, "Google login fail!", Toast.LENGTH_LONG).show();
-                            }
-                        });
-            } catch (ApiException e) {
-                showLoading(false);
-                Toast.makeText(this, "Google login fail!", Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-
-    // ─── HELPERS ───
 
     private void doAutoBackup() {
         FirebaseManager.getInstance().uploadAllData(
