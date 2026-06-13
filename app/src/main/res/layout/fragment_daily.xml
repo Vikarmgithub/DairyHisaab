@@ -5,6 +5,7 @@
     android:orientation="vertical"
     android:background="#F4F7FC">
 
+    <!-- GREEN GRADIENT HEADER -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -87,7 +88,7 @@
             android:background="#26FFFFFF"
             android:padding="3dp"
             android:layout_marginTop="12dp">
-            
+
             <TextView
                 android:id="@+id/btnMorning"
                 android:layout_width="0dp"
@@ -101,7 +102,7 @@
                 android:textSize="12sp"
                 android:clickable="true"
                 android:focusable="true"/>
-                
+
             <TextView
                 android:id="@+id/btnEvening"
                 android:layout_width="0dp"
@@ -116,6 +117,29 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- SEARCH BOX -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
+        android:elevation="2dp">
+
+        <EditText
+            android:id="@+id/etMemberSearch"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:hint="🔍 Member naam se search karein..."
+            android:textSize="13sp"
+            android:paddingHorizontal="12dp"
+            android:background="@drawable/bg_search_box"
+            android:inputType="textPersonName"
+            android:imeOptions="actionSearch"
+            android:maxLines="1" />
+    </LinearLayout>
+
+    <!-- COLUMN HEADERS -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -123,18 +147,59 @@
         android:background="@color/input_bg_blue"
         android:padding="10dp"
         android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="12dp">
-        <TextView android:layout_width="30dp" android:layout_height="wrap_content" android:text="#" android:textColor="@color/dairy_blue_light" android:textStyle="bold" android:textSize="11sp"/>
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Member" android:textColor="@color/dairy_blue_light" android:textStyle="bold" android:textSize="11sp"/>
-        <TextView android:layout_width="50dp" android:layout_height="wrap_content" android:text="Qty L" android:gravity="center" android:textColor="@color/dairy_blue_light" android:textStyle="bold" android:textSize="11sp"/>
-        <TextView android:layout_width="40dp" android:layout_height="wrap_content" android:text="Fat" android:gravity="center" android:textColor="@color/dairy_blue_light" android:textStyle="bold" android:textSize="11sp"/>
-        <TextView android:layout_width="60dp" android:layout_height="wrap_content" android:text="Total ₹" android:gravity="end" android:textColor="@color/dairy_blue_light" android:textStyle="bold" android:textSize="11sp"/>
+        android:layout_marginTop="4dp">
+
+        <TextView
+            android:layout_width="30dp"
+            android:layout_height="wrap_content"
+            android:text="#"
+            android:textColor="@color/dairy_blue_light"
+            android:textStyle="bold"
+            android:textSize="11sp"/>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Member"
+            android:textColor="@color/dairy_blue_light"
+            android:textStyle="bold"
+            android:textSize="11sp"/>
+
+        <TextView
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:text="Qty L"
+            android:gravity="center"
+            android:textColor="@color/dairy_blue_light"
+            android:textStyle="bold"
+            android:textSize="11sp"/>
+
+        <TextView
+            android:layout_width="40dp"
+            android:layout_height="wrap_content"
+            android:text="Fat"
+            android:gravity="center"
+            android:textColor="@color/dairy_blue_light"
+            android:textStyle="bold"
+            android:textSize="11sp"/>
+
+        <TextView
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:text="Total ₹"
+            android:gravity="end"
+            android:textColor="@color/dairy_blue_light"
+            android:textStyle="bold"
+            android:textSize="11sp"/>
     </LinearLayout>
 
+    <!-- ENTRY LIST -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
+
         <LinearLayout
             android:id="@+id/entryList"
             android:layout_width="match_parent"
@@ -144,6 +209,7 @@
             android:paddingBottom="16dp" />
     </ScrollView>
 
+    <!-- SAVE BUTTON -->
     <Button
         android:id="@+id/btnSaveAll"
         android:layout_width="match_parent"
@@ -151,6 +217,7 @@
         android:text="💾 Save All Entries"
         android:textColor="@color/white"
         android:textStyle="bold"
-        android:backgroundTint="@color/dairy_blue_primary"
+        android:backgroundTint="@color/dairy_green_primary"
         android:layout_margin="16dp"/>
+
 </LinearLayout>
