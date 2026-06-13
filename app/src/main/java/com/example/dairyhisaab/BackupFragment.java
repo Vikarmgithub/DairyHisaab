@@ -1,14 +1,20 @@
 package com.example.dairyhisaab;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -52,10 +58,109 @@ public class BackupFragment extends Fragment {
         view.findViewById(R.id.btnDriveRestore).setOnClickListener(v -> doFirebaseRestore());
         view.findViewById(R.id.btnRestore).setOnClickListener(v -> pickRestoreFile());
         view.findViewById(R.id.btnSignOut).setOnClickListener(v -> signOut());
+        view.findViewById(R.id.btnChangePin).setOnClickListener(v -> showChangePinDialog());
 
         refreshStatus(view);
         refreshAccountStatus(view);
         return view;
+    }
+
+    // ── PIN Change Dialog ──
+    private void showChangePinDialog() {
+        Dialog d = new Dialog(getContext());
+        d.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(56, 56, 56, 56);
+        layout.setBackgroundColor(Color.WHITE);
+
+        TextView title = new TextView(getContext());
+        title.setText("🔐 PIN Change Karo");
+        title.setTextSize(17);
+        title.setTextColor(0xFF1a3c5e);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setPadding(0, 0, 0, 6);
+
+        TextView sub = new TextView(getContext());
+        sub.setText("Pehle purana PIN daalo, phir naya set karo.");
+        sub.setTextSize(12);
+        sub.setTextColor(0xFF9e7b5a);
+        sub.setPadding(0, 0, 0, 24);
+
+        EditText etOld = new EditText(getContext());
+        etOld.setHint(dm.hasPin() ? "Purana PIN" : "PIN abhi set nahi hai — koi bhi daalo");
+        etOld.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
+                android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        etOld.setPadding(20, 14, 20, 14);
+        etOld.setBackgroundColor(0xFFF4F7FC);
+
+        LinearLayout.LayoutParams lp1 = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp1.setMargins(0, 0, 0, 14);
+        etOld.setLayoutParams(lp1);
+
+        EditText etNew = new EditText(getContext());
+        etNew.setHint("Naya PIN (4-6 digit)");
+        etNew.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
+                android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        etNew.setPadding(20, 14, 20, 14);
+        etNew.setBackgroundColor(0xFFF4F7FC);
+
+        LinearLayout.LayoutParams lp2 = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp2.setMargins(0, 0, 0, 14);
+        etNew.setLayoutParams(lp2);
+
+        EditText etConfirm = new EditText(getContext());
+        etConfirm.setHint("Naya PIN dobara daalo");
+        etConfirm.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
+                android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        etConfirm.setPadding(20, 14, 20, 14);
+        etConfirm.setBackgroundColor(0xFFF4F7FC);
+
+        LinearLayout.LayoutParams lp3 = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp3.setMargins(0, 0, 0, 24);
+        etConfirm.setLayoutParams(lp3);
+
+        Button btnSave = new Button(getContext());
+        btnSave.setText("✅ PIN SAVE KARO");
+        btnSave.setBackgroundColor(0xFF1a3c5e);
+        btnSave.setTextColor(Color.WHITE);
+
+        btnSave.setOnClickListener(v -> {
+            String oldPin = etOld.getText().toString().trim();
+            String newPin = etNew.getText().toString().trim();
+            String confirmPin = etConfirm.getText().toString().trim();
+
+            // Agar PIN pehle se set hai toh verify karo
+            if (dm.hasPin() && !dm.verifyPin(oldPin)) {
+                Toast.makeText(getContext(), "❌ Purana PIN galat hai!", Toast.LENGTH_SHORT).show();
+                etOld.setText("");
+                return;
+            }
+            if (newPin.length() < 4) {
+                Toast.makeText(getContext(), "Naya PIN kam se kam 4 digit ka chahiye!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!newPin.equals(confirmPin)) {
+                Toast.makeText(getContext(), "❌ Naya PIN match nahi kiya!", Toast.LENGTH_SHORT).show();
+                etConfirm.setText("");
+                return;
+            }
+            dm.savePin(newPin);
+            Toast.makeText(getContext(), "✅ PIN successfully change ho gaya!", Toast.LENGTH_SHORT).show();
+            d.dismiss();
+        });
+
+        layout.addView(title);
+        layout.addView(sub);
+        layout.addView(etOld);
+        layout.addView(etNew);
+        layout.addView(etConfirm);
+        layout.addView(btnSave);
+        d.setContentView(layout);
+        d.show();
     }
 
     private void doFirebaseBackup() {
@@ -220,13 +325,10 @@ public class BackupFragment extends Fragment {
         } catch (IOException e) { return null; }
     }
 
-    private Uri getFileUri(File file) {
-        return FileProvider.getUriForFile(requireContext(), requireContext().getPackageName() + ".provider", file);
-    }
-
     private void shareFileAny(File file) {
         try {
-            Uri uri = getFileUri(file);
+            Uri uri = FileProvider.getUriForFile(requireContext(),
+                    requireContext().getPackageName() + ".provider", file);
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType("application/json");
             intent.putExtra(Intent.EXTRA_STREAM, uri);
@@ -236,4 +338,4 @@ public class BackupFragment extends Fragment {
             Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
-    }
+}
