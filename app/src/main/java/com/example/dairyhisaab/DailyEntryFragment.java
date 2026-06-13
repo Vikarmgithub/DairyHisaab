@@ -29,7 +29,7 @@ import java.util.Map;
 
 public class DailyEntryFragment extends Fragment {
 
-    private EditText etDate;
+    private EditText etDate, etMemberSearch;
     private TextView btnMorning, btnEvening;
     private TextView btnPrevDay, btnNextDay;
     private Button btnSaveAll;
@@ -44,60 +44,49 @@ public class DailyEntryFragment extends Fragment {
 
     private DairyDataManager dm;
     private List<Customer> customerList = new ArrayList<>();
+    private List<Customer> filteredList = new ArrayList<>(); // search ke liye
     private Map<String, Integer> customerRowCount = new HashMap<>();
 
     public DailyEntryFragment() { }
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_daily, container, false);
 
         dm = DairyDataManager.getInstance(getContext());
 
-        etDate = view.findViewById(R.id.etDate);
-        btnMorning = view.findViewById(R.id.btnMorning);
-        btnEvening = view.findViewById(R.id.btnEvening);
-        tvRateBanner = view.findViewById(R.id.tvRateBanner);
-        entryList = view.findViewById(R.id.entryList);
-        btnSaveAll = view.findViewById(R.id.btnSaveAll);
-
-        btnPrevDay = view.findViewById(R.id.btnPrevDay);
-        btnNextDay = view.findViewById(R.id.btnNextDay);
+        etDate         = view.findViewById(R.id.etDate);
+        btnMorning     = view.findViewById(R.id.btnMorning);
+        btnEvening     = view.findViewById(R.id.btnEvening);
+        tvRateBanner   = view.findViewById(R.id.tvRateBanner);
+        entryList      = view.findViewById(R.id.entryList);
+        btnSaveAll     = view.findViewById(R.id.btnSaveAll);
+        btnPrevDay     = view.findViewById(R.id.btnPrevDay);
+        btnNextDay     = view.findViewById(R.id.btnNextDay);
+        etMemberSearch = view.findViewById(R.id.etMemberSearch);
 
         String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         etDate.setText(currentDate);
 
-        tvRateBanner.setText("भैंस फैट रेट: ₹" + buffFatRate + " (+" + buffCommission + ") | गाय फैट रेट: ₹" + cowFatRate + " (+" + cowCommission + ")");
+        tvRateBanner.setText("भैंस फैट रेट: ₹" + buffFatRate + " (+" + buffCommission + 
+                             ") | गाय फैट रेट: ₹" + cowFatRate + " (+" + cowCommission + ")");
 
         btnMorning.setOnClickListener(v -> selectShift("Subah"));
         btnEvening.setOnClickListener(v -> selectShift("Shaam"));
-
         btnPrevDay.setOnClickListener(v -> changeDate(-1));
         btnNextDay.setOnClickListener(v -> changeDate(1));
 
-        etDate.setOnClickListener(v -> {
-            try {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                Date current = sdf.parse(etDate.getText().toString().trim());
-                java.util.Calendar cal = java.util.Calendar.getInstance();
-                cal.setTime(current);
-                int year = cal.get(java.util.Calendar.YEAR);
-                int month = cal.get(java.util.Calendar.MONTH);
-                int day = cal.get(java.util.Calendar.DAY_OF_MONTH);
+        etDate.setOnClickListener(v -> openDatePicker());
 
-                android.app.DatePickerDialog dialog = new android.app.DatePickerDialog(getContext(),
-                    (picker, y, m, d) -> {
-                        java.util.Calendar newCal = java.util.Calendar.getInstance();
-                        newCal.set(y, m, d);
-                        etDate.setText(sdf.format(newCal.getTime()));
-                        if (getActivity() != null) {
-                            populateEntryList(LayoutInflater.from(getContext()));
-                        }
-                    }, year, month, day);
-                dialog.show();
-            } catch (Exception e) {
-                Toast.makeText(getContext(), "Date error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        // 🔍 Search filter — type karo, list filter ho
+        etMemberSearch.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void afterTextChanged(Editable s) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterAndReload(s.toString().trim());
             }
         });
 
@@ -109,39 +98,76 @@ public class DailyEntryFragment extends Fragment {
         return view;
     }
 
+    // 🔍 Search filter logic
+    private void filterAndReload(String query) {
+        filteredList.clear();
+        if (query.isEmpty()) {
+            filteredList.addAll(customerList);
+        } else {
+            String lower = query.toLowerCase();
+            for (Customer c : customerList) {
+                if ((c.name != null && c.name.toLowerCase().contains(lower)) ||
+                    (c.memberCode != null && c.memberCode.toLowerCase().contains(lower))) {
+                    filteredList.add(c);
+                }
+            }
+        }
+        if (getActivity() != null) {
+            populateEntryList(LayoutInflater.from(getContext()));
+        }
+    }
+
+    private void openDatePicker() {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            Date current = sdf.parse(etDate.getText().toString().trim());
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(current);
+            new android.app.DatePickerDialog(getContext(),
+                (picker, y, m, d) -> {
+                    java.util.Calendar nc = java.util.Calendar.getInstance();
+                    nc.set(y, m, d);
+                    etDate.setText(sdf.format(nc.getTime()));
+                    if (getActivity() != null)
+                        populateEntryList(LayoutInflater.from(getContext()));
+                },
+                cal.get(java.util.Calendar.YEAR),
+                cal.get(java.util.Calendar.MONTH),
+                cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "Date error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void changeDate(int days) {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-            Date currentDate = sdf.parse(etDate.getText().toString().trim());
+            Date d = sdf.parse(etDate.getText().toString().trim());
             java.util.Calendar cal = java.util.Calendar.getInstance();
-            cal.setTime(currentDate);
+            cal.setTime(d);
             cal.add(java.util.Calendar.DAY_OF_MONTH, days);
             etDate.setText(sdf.format(cal.getTime()));
-            if (getActivity() != null) {
+            if (getActivity() != null)
                 populateEntryList(LayoutInflater.from(getContext()));
-            }
         } catch (Exception e) {
             Toast.makeText(getContext(), "Date error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
     private void selectShift(String shift) {
-        // 💡 यहाँ शिफ्ट को बिल्कुल पक्का लॉक कर रहे हैं
         if (shift.equalsIgnoreCase("Subah")) {
             selectedShift = "Subah";
             btnMorning.setBackgroundColor(Color.WHITE);
-            btnMorning.setTextColor(Color.parseColor("#0D47A1")); 
+            btnMorning.setTextColor(Color.parseColor("#1B5E20"));
             btnEvening.setBackgroundColor(Color.TRANSPARENT);
             btnEvening.setTextColor(Color.WHITE);
         } else {
             selectedShift = "Shaam";
             btnEvening.setBackgroundColor(Color.WHITE);
-            btnEvening.setTextColor(Color.parseColor("#0D47A1")); 
+            btnEvening.setTextColor(Color.parseColor("#1B5E20"));
             btnMorning.setBackgroundColor(Color.TRANSPARENT);
             btnMorning.setTextColor(Color.WHITE);
         }
-
-        // 💡 शिफ्ट बदलते ही पुरानी लिस्ट साफ़ करके फ्रेश रीलोड करना ज़रूरी है
         if (getActivity() != null) {
             loadRealMembers();
             populateEntryList(LayoutInflater.from(getContext()));
@@ -149,11 +175,23 @@ public class DailyEntryFragment extends Fragment {
     }
 
     private void loadRealMembers() {
-        if (dm != null) {
-            customerList = dm.getCustomers();
-        }
-        if (customerList == null) {
-            customerList = new ArrayList<>();
+        customerList = dm != null ? dm.getCustomers() : new ArrayList<>();
+        if (customerList == null) customerList = new ArrayList<>();
+
+        // search query preserve karo
+        String query = etMemberSearch != null ?
+                etMemberSearch.getText().toString().trim() : "";
+        filteredList.clear();
+        if (query.isEmpty()) {
+            filteredList.addAll(customerList);
+        } else {
+            String lower = query.toLowerCase();
+            for (Customer c : customerList) {
+                if ((c.name != null && c.name.toLowerCase().contains(lower)) ||
+                    (c.memberCode != null && c.memberCode.toLowerCase().contains(lower))) {
+                    filteredList.add(c);
+                }
+            }
         }
     }
 
@@ -161,9 +199,11 @@ public class DailyEntryFragment extends Fragment {
         entryList.removeAllViews();
         customerRowCount.clear();
 
-        if (customerList.isEmpty()) {
+        if (filteredList.isEmpty()) {
             TextView empty = new TextView(getContext());
-            empty.setText("कोई मेंबर नहीं मिला। पहले 'MEMBERS' टैब में जाकर जोड़ें!");
+            empty.setText(customerList.isEmpty()
+                    ? "कोई मेंबर नहीं मिला। पहले 'MEMBERS' टैब में जाकर जोड़ें!"
+                    : "कोई मेंबर इस नाम से नहीं मिला।");
             empty.setTextColor(Color.parseColor("#78909C"));
             empty.setTextSize(14);
             empty.setGravity(android.view.Gravity.CENTER);
@@ -172,31 +212,26 @@ public class DailyEntryFragment extends Fragment {
             return;
         }
 
-        // 💡 डेटाबेस से आज की डेट और सिलेक्टेड शिफ्ट का पहले से सेव डेटा ढूंढते हैं
         List<MilkEntry> existingEntries = dm.getEntries();
         String currentDate = etDate.getText().toString().trim();
-        
+
         Map<String, List<MilkEntry>> entryMap = new HashMap<>();
         for (MilkEntry e : existingEntries) {
             if (e.date.equals(currentDate) && e.shift.equalsIgnoreCase(selectedShift)) {
-                if (!entryMap.containsKey(e.cid)) {
-                    entryMap.put(e.cid, new ArrayList<>());
-                }
+                if (!entryMap.containsKey(e.cid)) entryMap.put(e.cid, new ArrayList<>());
                 entryMap.get(e.cid).add(e);
             }
         }
 
         int sn = 1;
-        for (Customer c : customerList) {
+        for (Customer c : filteredList) {
             if (entryMap.containsKey(c.id) && !entryMap.get(c.id).isEmpty()) {
-                // अगर पहले से सुबह या शाम का डेटा सेव है, तो वही वैल्यू डब्बों में भरो
                 List<MilkEntry> cEntries = entryMap.get(c.id);
                 customerRowCount.put(c.id, cEntries.size());
                 for (int r = 0; r < cEntries.size(); r++) {
                     addEntryRow(c, sn, r + 1, cEntries.get(r));
                 }
             } else {
-                // नहीं तो खाली डिफ़ॉल्ट रो दिखाओ
                 customerRowCount.put(c.id, 1);
                 addEntryRow(c, sn, 1, null);
             }
@@ -209,8 +244,8 @@ public class DailyEntryFragment extends Fragment {
         if (rowNumber > 1) {
             TextView tvWarning = new TextView(getContext());
             tvWarning.setText("⚠️ " + c.name + " ki " + rowNumber + " entry (Multiple bartan)");
-            tvWarning.setTextColor(Color.parseColor("#C62828")); 
-            tvWarning.setBackgroundColor(Color.parseColor("#FFEBEE")); 
+            tvWarning.setTextColor(Color.parseColor("#C62828"));
+            tvWarning.setBackgroundColor(Color.parseColor("#FFEBEE"));
             tvWarning.setTextSize(11);
             tvWarning.setPadding(12, 4, 12, 4);
             tvWarning.setTag("warning_" + c.id + "_" + rowNumber);
@@ -219,38 +254,31 @@ public class DailyEntryFragment extends Fragment {
 
         LinearLayout rowView = new LinearLayout(getContext());
         rowView.setOrientation(LinearLayout.HORIZONTAL);
-        rowView.setWeightSum(11); 
-        rowView.setPadding(0, 12, 0, 12); 
+        rowView.setWeightSum(11);
+        rowView.setPadding(0, 12, 0, 12);
+        if (rowNumber > 1) rowView.setBackgroundColor(Color.parseColor("#F0F7FF"));
 
-        if (rowNumber > 1) {
-            rowView.setBackgroundColor(Color.parseColor("#F0F7FF")); 
-        }
-
-        // 1. S.No
         TextView tvSn = new TextView(getContext());
         tvSn.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         tvSn.setText(rowNumber > 1 ? "  ↳" : String.valueOf(sn));
         tvSn.setTextColor(Color.parseColor("#212121"));
         rowView.addView(tvSn);
 
-        // 2. Name
         TextView tvName = new TextView(getContext());
         tvName.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2.5f));
         tvName.setText("[" + c.memberCode + "] " + c.name);
         tvName.setTypeface(null, Typeface.BOLD);
-        tvName.setTextColor(Color.parseColor("#212121"));
-        if (rowNumber > 1) tvName.setTextColor(Color.parseColor("#C62828"));
+        tvName.setTextColor(rowNumber > 1 ? Color.parseColor("#C62828") : Color.parseColor("#212121"));
         rowView.addView(tvName);
 
-        // 3. Animal Spinner
         Spinner spAnimal = new Spinner(getContext());
         spAnimal.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.5f));
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, new String[]{"भैंस", "गाय"});
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(),
+                android.R.layout.simple_spinner_item, new String[]{"भैंस", "गाय"});
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spAnimal.setAdapter(adapter);
         rowView.addView(spAnimal);
 
-        // 4. Qty
         EditText etQty = new EditText(getContext());
         etQty.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.5f));
         etQty.setHint("0.0");
@@ -259,7 +287,6 @@ public class DailyEntryFragment extends Fragment {
         if (existingEntry != null) etQty.setText(String.valueOf(existingEntry.qty));
         rowView.addView(etQty);
 
-        // 5. Fat
         EditText etFat = new EditText(getContext());
         etFat.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.2f));
         etFat.setHint("0.0");
@@ -268,7 +295,6 @@ public class DailyEntryFragment extends Fragment {
         if (existingEntry != null) etFat.setText(String.valueOf(existingEntry.fat));
         rowView.addView(etFat);
 
-        // 6. CLR
         EditText etClr = new EditText(getContext());
         etClr.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f));
         etClr.setHint("0");
@@ -276,16 +302,14 @@ public class DailyEntryFragment extends Fragment {
         etClr.setTextColor(Color.parseColor("#212121"));
         rowView.addView(etClr);
 
-        // 7. Total Rs
         TextView tvTotalRs = new TextView(getContext());
         tvTotalRs.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.2f));
         tvTotalRs.setText("₹0.00");
         tvTotalRs.setGravity(android.view.Gravity.CENTER);
         tvTotalRs.setTypeface(null, Typeface.BOLD);
-        tvTotalRs.setTextColor(Color.parseColor("#2E7D32")); 
+        tvTotalRs.setTextColor(Color.parseColor("#2E7D32"));
         rowView.addView(tvTotalRs);
 
-        // 8. "+" / "✕" Button
         Button btnAdd = new Button(getContext());
         btnAdd.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         btnAdd.setText(rowNumber == 1 ? "+" : "✕");
@@ -293,57 +317,50 @@ public class DailyEntryFragment extends Fragment {
         btnAdd.setPadding(0, 0, 0, 0);
 
         if (rowNumber == 1) {
-            btnAdd.setBackgroundColor(Color.parseColor("#0D47A1")); 
+            btnAdd.setBackgroundColor(Color.parseColor("#2E7D32")); // green
             btnAdd.setTextColor(Color.WHITE);
             btnAdd.setOnClickListener(v -> {
-                int currentCount = customerRowCount.getOrDefault(c.id, 1);
-                customerRowCount.put(c.id, currentCount + 1);
-                addEntryRow(c, sn, currentCount + 1, null);
+                int cc = customerRowCount.getOrDefault(c.id, 1);
+                customerRowCount.put(c.id, cc + 1);
+                addEntryRow(c, sn, cc + 1, null);
             });
         } else {
-            btnAdd.setBackgroundColor(Color.parseColor("#C62828")); 
+            btnAdd.setBackgroundColor(Color.parseColor("#C62828"));
             btnAdd.setTextColor(Color.WHITE);
             btnAdd.setOnClickListener(v -> {
-                int rowIndex = getViewIndexInParent(rowView);
-                if (rowIndex > 0) {
-                    View prevView = entryList.getChildAt(rowIndex - 1);
-                    if (prevView != null && prevView.getTag() != null &&
-                        prevView.getTag().toString().startsWith("warning_" + c.id)) {
-                        entryList.removeView(prevView);
+                int idx = getViewIndexInParent(rowView);
+                if (idx > 0) {
+                    View prev = entryList.getChildAt(idx - 1);
+                    if (prev != null && prev.getTag() != null &&
+                            prev.getTag().toString().startsWith("warning_" + c.id)) {
+                        entryList.removeView(prev);
                     }
                 }
                 entryList.removeView(rowView);
-                int currentCount = customerRowCount.getOrDefault(c.id, 1);
-                if (currentCount > 1) customerRowCount.put(c.id, currentCount - 1);
+                int cc = customerRowCount.getOrDefault(c.id, 1);
+                if (cc > 1) customerRowCount.put(c.id, cc - 1);
             });
         }
         rowView.addView(btnAdd);
-
         rowView.setTag(c.id);
 
-        TextWatcher amountWatcher = new TextWatcher() {
+        TextWatcher watcher = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void afterTextChanged(Editable s) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 calculateRowAmount(spAnimal, etQty, etFat, tvTotalRs);
             }
-            @Override public void afterTextChanged(Editable s) {}
         };
-
-        etQty.addTextChangedListener(amountWatcher);
-        etFat.addTextChangedListener(amountWatcher);
-
+        etQty.addTextChangedListener(watcher);
+        etFat.addTextChangedListener(watcher);
         spAnimal.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
                 calculateRowAmount(spAnimal, etQty, etFat, tvTotalRs);
             }
-            @Override public void onNothingSelected(AdapterView<?> parent) {}
+            @Override public void onNothingSelected(AdapterView<?> p) {}
         });
 
-        // 💡 अगर पुराना डेटा मौजूद था तो तुरंत कैलकुलेशन दिखाओ
-        if (existingEntry != null) {
-            calculateRowAmount(spAnimal, etQty, etFat, tvTotalRs);
-        }
+        if (existingEntry != null) calculateRowAmount(spAnimal, etQty, etFat, tvTotalRs);
 
         entryList.addView(rowView);
     }
@@ -358,29 +375,14 @@ public class DailyEntryFragment extends Fragment {
     private void calculateRowAmount(Spinner spAnimal, EditText etQty, EditText etFat, TextView tvTotalRs) {
         String qtyStr = etQty.getText().toString().trim();
         String fatStr = etFat.getText().toString().trim();
-
-        if (qtyStr.isEmpty() || fatStr.isEmpty()) {
-            tvTotalRs.setText("₹0.00");
-            return;
-        }
-
+        if (qtyStr.isEmpty() || fatStr.isEmpty()) { tvTotalRs.setText("₹0.00"); return; }
         try {
             double qty = Double.parseDouble(qtyStr);
             double fat = Double.parseDouble(fatStr);
-
-            double currentFatRate = buffFatRate;
-            double currentCommission = buffCommission;
-
-            if (spAnimal.getSelectedItem().toString().equals("गाय")) {
-                currentFatRate = cowFatRate;
-                currentCommission = cowCommission;
-            }
-
-            double ratePerKg = ((currentFatRate * fat) / 100.0) + currentCommission;
-            double totalAmount = qty * ratePerKg;
-
-            tvTotalRs.setText(String.format(Locale.getDefault(), "₹%.2f", totalAmount));
-
+            boolean isCow = spAnimal.getSelectedItem().toString().equals("गाय");
+            double rate = ((isCow ? cowFatRate : buffFatRate) * fat / 100.0)
+                        + (isCow ? cowCommission : buffCommission);
+            tvTotalRs.setText(String.format(Locale.getDefault(), "₹%.2f", qty * rate));
         } catch (NumberFormatException e) {
             tvTotalRs.setText("₹0.00");
         }
@@ -394,66 +396,52 @@ public class DailyEntryFragment extends Fragment {
         }
 
         List<MilkEntry> allEntries = dm.getEntries();
-
-        // 💡 डेटाबेस से पुरानी सिर्फ आज की सिलेक्टेड शिफ्ट की एंट्री हटाओ, दूसरी शिफ्ट सुरक्षित रहेगी
         for (int i = allEntries.size() - 1; i >= 0; i--) {
             MilkEntry e = allEntries.get(i);
-            if (e.date.equals(date) && e.shift.equalsIgnoreCase(selectedShift)) {
+            if (e.date.equals(date) && e.shift.equalsIgnoreCase(selectedShift))
                 allEntries.remove(i);
-            }
         }
 
         int saved = 0;
-        long baseTime = System.currentTimeMillis();
+        long base = System.currentTimeMillis();
 
         for (int i = 0; i < entryList.getChildCount(); i++) {
             View child = entryList.getChildAt(i);
-            if (!(child instanceof LinearLayout)) continue; 
-
+            if (!(child instanceof LinearLayout)) continue;
             LinearLayout row = (LinearLayout) child;
-            if (row.getTag() == null) continue;
+            if (row.getTag() == null || row.getChildCount() < 7) continue;
 
-            String customerId = row.getTag().toString();
-            if (row.getChildCount() < 7) continue;
-
-            // 💡 पक्के इंडेक्स से सही वैल्यू उठाना
-            String qtyStr = ((EditText) row.getChildAt(3)).getText().toString().trim();
-            String fatStr = ((EditText) row.getChildAt(4)).getText().toString().trim();
-            String clrStr = ((EditText) row.getChildAt(5)).getText().toString().trim();
-            String totalStr = ((TextView) row.getChildAt(6)).getText().toString()
-                    .replace("₹", "").trim();
+            String cid     = row.getTag().toString();
+            String qtyStr  = ((EditText)  row.getChildAt(3)).getText().toString().trim();
+            String fatStr  = ((EditText)  row.getChildAt(4)).getText().toString().trim();
+            String clrStr  = ((EditText)  row.getChildAt(5)).getText().toString().trim();
+            String totStr  = ((TextView)  row.getChildAt(6)).getText().toString()
+                               .replace("₹", "").trim();
 
             if (qtyStr.isEmpty() || qtyStr.equals("0") || qtyStr.equals("0.0")) continue;
 
             try {
-                double qty = Double.parseDouble(qtyStr);
-                double fat = fatStr.isEmpty() ? 0 : Double.parseDouble(fatStr);
-                double clr = clrStr.isEmpty() ? 0 : Double.parseDouble(clrStr);
-                double rate = (totalStr.isEmpty() || Double.parseDouble(totalStr) == 0) ? 0
-                        : Double.parseDouble(totalStr) / qty;
+                double qty  = Double.parseDouble(qtyStr);
+                double fat  = fatStr.isEmpty() ? 0 : Double.parseDouble(fatStr);
+                double tot  = totStr.isEmpty()  ? 0 : Double.parseDouble(totStr);
+                double rate = qty > 0 ? tot / qty : 0;
 
                 MilkEntry entry = new MilkEntry();
-                entry.id = (baseTime + i) + "_" + customerId;
-                entry.cid = customerId;
-                entry.date = date;
-                entry.shift = selectedShift; // 💡 "Subah" या "Shaam" एकदम परफेक्ट लॉक होकर जाएगा
-                entry.qty = qty;
-                entry.fat = fat;
-                entry.rate = rate;
-                
+                entry.id    = (base + i) + "_" + cid;
+                entry.cid   = cid;
+                entry.date  = date;
+                entry.shift = selectedShift;
+                entry.qty   = qty;
+                entry.fat   = fat;
+                entry.rate  = rate;
                 allEntries.add(entry);
                 saved++;
-            } catch (NumberFormatException e) {
-                // skip invalid rows
-            }
+            } catch (NumberFormatException ignored) {}
         }
 
         dm.saveEntries(allEntries);
-
-        String msg = saved + " entries " + selectedShift + " shift me save ho gayi!";
-        if (saved > customerList.size()) {
-            msg += " (Kuch customers ki multiple entries hain)";
-        }
-        Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
+        Toast.makeText(getContext(),
+                saved + " entries " + selectedShift + " shift mein save ho gayi!",
+                Toast.LENGTH_SHORT).show();
     }
-                                 }
+}
