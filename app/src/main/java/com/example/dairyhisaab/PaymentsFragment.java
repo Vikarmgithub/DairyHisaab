@@ -1,5 +1,6 @@
 package com.example.dairyhisaab;
 
+import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,8 +14,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.fragment.app.Fragment;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class PaymentsFragment extends Fragment {
 
@@ -30,11 +35,51 @@ public class PaymentsFragment extends Fragment {
         EditText etPayDate = view.findViewById(R.id.etPayDate);
         etPayDate.setText(DairyDataManager.today());
 
+        // ✅ FIX 1: Date picker on tap
+        etPayDate.setFocusable(false);
+        etPayDate.setClickable(true);
+        etPayDate.setOnClickListener(v -> {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                Date current = sdf.parse(etPayDate.getText().toString().trim());
+                Calendar cal = Calendar.getInstance();
+                if (current != null) cal.setTime(current);
+                new DatePickerDialog(getContext(),
+                    (picker, y, m, d) -> {
+                        Calendar nc = Calendar.getInstance();
+                        nc.set(y, m, d);
+                        etPayDate.setText(sdf.format(nc.getTime()));
+                    },
+                    cal.get(Calendar.YEAR),
+                    cal.get(Calendar.MONTH),
+                    cal.get(Calendar.DAY_OF_MONTH)).show();
+            } catch (Exception e) {
+                Toast.makeText(getContext(), "Date error!", Toast.LENGTH_SHORT).show();
+            }
+        });
+
         loadSpinner(view);
         loadPayments(view);
 
         view.findViewById(R.id.btnSavePayment).setOnClickListener(v -> savePayment(view));
         return view;
+    }
+
+    // ✅ FIX 2: Net bill = gross - PF deduction
+    double netBill(String customerId) {
+        double total = 0;
+        for (MilkEntry e : dm.getEntries()) {
+            if (e.cid.equals(customerId)) {
+                RateEntry rate = dm.getActiveRate(e.date);
+                double pf = rate != null ? e.qty * rate.pfPerLiter : 0;
+                total += (e.qty * e.rate) - pf;
+            }
+        }
+        return total;
+    }
+
+    double netOutstanding(String customerId) {
+        return netBill(customerId) - dm.totalPaid(customerId);
     }
 
     void loadSpinner(View view) {
@@ -44,8 +89,9 @@ public class PaymentsFragment extends Fragment {
         List<String> names = new ArrayList<>();
         names.add("-- Member chunno --");
         for (Customer c : customers) {
+            double baaki = netOutstanding(c.id);
             names.add("[" + c.memberCode + "] " + c.name +
-                (dm.outstanding(c.id) > 0 ? " (Rs." + String.format("%.0f", dm.outstanding(c.id)) + " baaki)" : ""));
+                (baaki > 0 ? " (Rs." + String.format("%.0f", baaki) + " baaki)" : ""));
         }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(),
@@ -62,10 +108,11 @@ public class PaymentsFragment extends Fragment {
                 } else {
                     Customer c = customers.get(pos - 1);
                     selectedCid = c.id;
-                    double bill = dm.totalBill(c.id);
-                    double paid = dm.totalPaid(c.id);
-                    double baaki = dm.outstanding(c.id);
-                    tvInfo.setText(c.name + " | Bill: Rs." + String.format("%.0f", bill)
+                    double bill  = netBill(c.id);
+                    double paid  = dm.totalPaid(c.id);
+                    double baaki = netOutstanding(c.id);
+                    tvInfo.setText(c.name
+                        + " | Bill: Rs." + String.format("%.0f", bill)
                         + " | Paid: Rs." + String.format("%.0f", paid)
                         + " | Baaki: Rs." + String.format("%.0f", baaki));
                     tvInfo.setBackgroundColor(0xFFf0fdf4);
@@ -122,7 +169,6 @@ public class PaymentsFragment extends Fragment {
             return;
         }
 
-        // Sort by date descending, show last 15
         payments.sort((a, b) -> b.date.compareTo(a.date));
         int count = Math.min(payments.size(), 15);
 
