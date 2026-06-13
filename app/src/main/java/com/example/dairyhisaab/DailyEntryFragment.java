@@ -30,7 +30,8 @@ import java.util.Map;
 public class DailyEntryFragment extends Fragment {
 
     private EditText etDate;
-    private TextView btnMorning, btnEvening; 
+    private TextView btnMorning, btnEvening;
+    private TextView btnPrevDay, btnNextDay;
     private Button btnSaveAll;
     private TextView tvRateBanner;
     private LinearLayout entryList;
@@ -61,6 +62,9 @@ public class DailyEntryFragment extends Fragment {
         entryList = view.findViewById(R.id.entryList);
         btnSaveAll = view.findViewById(R.id.btnSaveAll);
 
+        btnPrevDay = view.findViewById(R.id.btnPrevDay);
+        btnNextDay = view.findViewById(R.id.btnNextDay);
+
         String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         etDate.setText(currentDate);
 
@@ -68,16 +72,9 @@ public class DailyEntryFragment extends Fragment {
 
         btnMorning.setOnClickListener(v -> selectShift("Subah"));
         btnEvening.setOnClickListener(v -> selectShift("Shaam"));
-        etDate.addTextChangedListener(new TextWatcher() {
-    @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-    @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-    @Override public void afterTextChanged(Editable s) {
-        String txt = s.toString().trim();
-        if (txt.length() == 10 && getActivity() != null) {
-            populateEntryList(LayoutInflater.from(getContext()));
-        }
-    }
-});
+
+        btnPrevDay.setOnClickListener(v -> changeDate(-1));
+        btnNextDay.setOnClickListener(v -> changeDate(1));
 
         loadRealMembers();
         populateEntryList(inflater);
@@ -85,6 +82,22 @@ public class DailyEntryFragment extends Fragment {
         btnSaveAll.setOnClickListener(v -> saveAllEntriesToDatabase());
 
         return view;
+    }
+
+    private void changeDate(int days) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            Date currentDate = sdf.parse(etDate.getText().toString().trim());
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(currentDate);
+            cal.add(java.util.Calendar.DAY_OF_MONTH, days);
+            etDate.setText(sdf.format(cal.getTime()));
+            if (getActivity() != null) {
+                populateEntryList(LayoutInflater.from(getContext()));
+            }
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "Date error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void selectShift(String shift) {
@@ -418,4 +431,4 @@ public class DailyEntryFragment extends Fragment {
         }
         Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
     }
-}
+            }
