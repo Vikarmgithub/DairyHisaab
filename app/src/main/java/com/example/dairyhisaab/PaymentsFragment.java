@@ -60,6 +60,16 @@ public class PaymentsFragment extends Fragment {
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Naya member ya rate add hone ke baad fresh data laao,
+        // taaki member code search turant kaam kare
+        if (dm != null) {
+            customers = dm.getCustomers();
+        }
+    }
+
     // ══════════════════════════════════════════════
     //  TAB SWITCHING
     // ══════════════════════════════════════════════
