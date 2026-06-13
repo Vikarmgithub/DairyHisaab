@@ -34,7 +34,8 @@ public class LoginActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
 
     private Button btnGoogleSignIn, btnLogin, btnRegister;
-    private EditText etEmail, etPassword;
+    private EditText etEmail, etPassword, etName;
+    private LinearLayout layoutName;
     private TextView tvToggle;
     private boolean isLoginMode = true;
 
@@ -75,7 +76,9 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin        = findViewById(R.id.btnLogin);
         btnRegister     = findViewById(R.id.btnRegister);
         etEmail         = findViewById(R.id.etEmail);
-        etPassword      = findViewById(R.id.etPassword);
+        etPassword = findViewById(R.id.etPassword);
+        etName = findViewById(R.id.etName);
+        layoutName = findViewById(R.id.layoutName);
         tvToggle        = findViewById(R.id.tvToggle);
         etPhone         = findViewById(R.id.etPhone);
         etOtp           = findViewById(R.id.etOtp);
@@ -132,6 +135,11 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void registerWithEmail() {
+        String name = etName.getText().toString().trim();
+        if (name.isEmpty()) {
+            Toast.makeText(this, "Naam daalo", Toast.LENGTH_SHORT).show();
+            return;
+        }
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
         if (email.isEmpty() || password.isEmpty()) {
@@ -143,14 +151,11 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
         showLoading(true);
-        mAuth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, task -> {
+        String finalName = name;
                     showLoading(false);
                     if (task.isSuccessful()) {
-                        mAuth.getCurrentUser().sendEmailVerification()
-                                .addOnCompleteListener(emailTask -> {
-                                    mAuth.signOut();
-                                    Toast.makeText(this,
+                        UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder().setDisplayName(finalName).build();
+                            mAuth.getCurrentUser().updateProfile(profileUpdates);
                                         "Account ban gaya! " + email + " pe verification link bheja gaya.",
                                         Toast.LENGTH_LONG).show();
                                     toggleMode();
@@ -165,10 +170,12 @@ public class LoginActivity extends AppCompatActivity {
         isLoginMode = !isLoginMode;
         if (isLoginMode) {
             btnLogin.setVisibility(View.VISIBLE);
+            layoutName.setVisibility(View.GONE);
             btnRegister.setVisibility(View.GONE);
             tvToggle.setText("Naya account banao? Register karo");
         } else {
             btnLogin.setVisibility(View.GONE);
+            layoutName.setVisibility(View.VISIBLE);
             btnRegister.setVisibility(View.VISIBLE);
             tvToggle.setText("Pehle se account hai? Login karo");
         }
