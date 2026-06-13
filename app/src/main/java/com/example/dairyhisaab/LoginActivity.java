@@ -136,12 +136,12 @@ public class LoginActivity extends AppCompatActivity {
 
     private void registerWithEmail() {
         String name = etName.getText().toString().trim();
+        String email = etEmail.getText().toString().trim();
+        String password = etPassword.getText().toString().trim();
         if (name.isEmpty()) {
             Toast.makeText(this, "Naam daalo", Toast.LENGTH_SHORT).show();
             return;
         }
-        String email = etEmail.getText().toString().trim();
-        String password = etPassword.getText().toString().trim();
         if (email.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, "Email aur password daalo", Toast.LENGTH_SHORT).show();
             return;
@@ -152,12 +152,19 @@ public class LoginActivity extends AppCompatActivity {
         }
         showLoading(true);
         String finalName = name;
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
                     showLoading(false);
                     if (task.isSuccessful()) {
-                        UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder().setDisplayName(finalName).build();
-                            mAuth.getCurrentUser().updateProfile(profileUpdates);
-                                        "Account ban gaya! " + email + " pe verification link bheja gaya.",
-                                        Toast.LENGTH_LONG).show();
+                        UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                                .setDisplayName(finalName).build();
+                        mAuth.getCurrentUser().updateProfile(profileUpdates);
+                        mAuth.getCurrentUser().sendEmailVerification()
+                                .addOnCompleteListener(emailTask -> {
+                                    mAuth.signOut();
+                                    Toast.makeText(this,
+                                            "Account ban gaya! " + email + " pe verification link bheja gaya.",
+                                            Toast.LENGTH_LONG).show();
                                     toggleMode();
                                 });
                     } else {
@@ -165,14 +172,6 @@ public class LoginActivity extends AppCompatActivity {
                     }
                 });
     }
-
-    private void toggleMode() {
-        isLoginMode = !isLoginMode;
-        if (isLoginMode) {
-            btnLogin.setVisibility(View.VISIBLE);
-            layoutName.setVisibility(View.GONE);
-            btnRegister.setVisibility(View.GONE);
-            tvToggle.setText("Naya account banao? Register karo");
         } else {
             btnLogin.setVisibility(View.GONE);
             layoutName.setVisibility(View.VISIBLE);
