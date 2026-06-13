@@ -37,6 +37,68 @@ public class AdminRestoreHelper {
                 Toast.makeText(activity, "Request fail: " + e.getMessage(), Toast.LENGTH_LONG).show()));
     }
 
+    private static void waitForApproval(FragmentActivity activity, DairyDataManager dm, FirebaseManager fm, String requestId, Runnable onSuccess) {
+        ProgressDialog wp = new ProgressDialog(activity);
+        wp.setMessage("Admin approval ka wait kar rahe hain...\n\nCancel karne ke liye back dabao.");
+        wp.setCancelable(true);
+        wp.show();
+
+        android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+        Runnable[] checker = new Runnable[1];
+        checker[0] = () -> {
+            if (!activity.isFinishing() && wp.isShowing()) {
+                com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    .collection("restore_requests").document(requestId)
+                    .get()
+                    .addOnSuccessListener(snap -> {
+                        if (snap != null && snap.exists()) {
+                            String st = (String) snap.get("status");
+                            if ("approved".equals(st)) {
+                                wp.dismiss();
+                                doRestore(activity, dm, fm, requestId, onSuccess);
+                            } else if ("rejected".equals(st)) {
+                                wp.dismiss();
+                                com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                                    .collection("restore_requests").document(requestId).delete();
+                                Toast.makeText(activity, "Admin ne reject kar diya.", Toast.LENGTH_LONG).show();
+                            } else {
+                                handler.postDelayed(checker[0], 5000);
+                            }
+                        }
+                    });
+            }
+        };
+        handler.postDelayed(checker[0], 5000);
+    }
+
+    private static void doRestore(FragmentActivity activity, DairyDataManager dm, FirebaseManager fm, String requestId, Runnable onSuccess) {
+        ProgressDialog pd = new ProgressDialog(activity);
+        pd.setMessage("Cloud se data la raha hai...");
+        pd.setCancelable(false);
+        pd.show();
+
+        fm.downloadAllData(new FirebaseManager.DownloadCallback() {
+            @Override public void onSuccess(java.util.Map<String, Object> data) {
+                activity.runOnUiThread(() -> {
+                    pd.dismiss();
+                    try {
+                        fm.restoreData(dm, data);
+                        com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("restore_requests").document(requestId).delete();
+                        Toast.makeText(activity, "Restore Successful!", Toast.LENGTH_LONG).show();
+                        if (onSuccess != null) onSuccess.run();
+                    } catch (Exception ex) {
+                        Toast.makeText(activity, "Error: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+            @Override public void onFailure(String error) {
+                activity.runOnUiThread(() -> { pd.dismiss(); Toast.makeText(activity, error, Toast.LENGTH_LONG).show(); });
+            }
+        });
+    }
+}                Toast.makeText(activity, "Request fail: " + e.getMessage(), Toast.LENGTH_LONG).show()));
+    }
+
    private static void waitForApproval(FragmentActivity activity, DairyDataManager dm, FirebaseManager fm, String requestId, Runnable onSuccess) {
     ProgressDialog wp = new ProgressDialog(activity);
     wp.setMessage("Admin approval ka wait kar rahe hain...\n\nCancel karne ke liye back dabao.");
