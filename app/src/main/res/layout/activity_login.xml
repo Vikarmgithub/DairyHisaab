@@ -118,6 +118,7 @@
 
         <Button
             android:id="@+id/btnLogin"
+    android:visibility="visible"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:text="Login Karo"
