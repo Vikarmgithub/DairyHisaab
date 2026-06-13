@@ -31,37 +31,39 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Apne dairy ka hisaab — aasaan aur surakshit"
+            android:text="Apne dairy ka hisaab – aasaan aur surakshit"
             android:textSize="14sp"
             android:textColor="#8B6347"
             android:gravity="center"
             android:layout_marginBottom="32dp"/>
 
         <!-- NAME INPUT -->
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginBottom="12dp"
-        android:background="@drawable/bg_input_field"
-        android:visibility="gone"
-        android:id="@+id/layoutName">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="👤"
-            android:layout_centerVertical="true"
-            android:layout_marginStart="14dp" />
-        <EditText
-            android:id="@+id/etName"
+        <RelativeLayout
+            android:id="@+id/layoutName"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@android:color/transparent"
-            android:hint="Apna naam daalo"
-            android:textColorHint="#AAAAAA"
-            android:textColor="#333333"
-            android:textSize="15sp"
-            android:paddingStart="10dp"
-            android:inputType="textPersonName" />
+            android:layout_height="48dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_input_field"
+            android:visibility="gone">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="👤"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="14dp" />
+            <EditText
+                android:id="@+id/etName"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent"
+                android:hint="Apna naam daalo"
+                android:textColorHint="#AAAAAA"
+                android:textColor="#333333"
+                android:textSize="15sp"
+                android:paddingStart="10dp"
+                android:inputType="textPersonName" />
+        </RelativeLayout>
+
         <!-- EMAIL INPUT -->
         <RelativeLayout
             android:layout_width="match_parent"
@@ -118,25 +120,24 @@
 
         <Button
             android:id="@+id/btnLogin"
-    android:visibility="visible"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:text="Login Karo"
             android:textSize="15sp"
             android:textColor="#FFFFFF"
             android:backgroundTint="#5D3A1A"
+            android:visibility="visible"
             android:layout_marginBottom="8dp"/>
 
         <Button
             android:id="@+id/btnRegister"
-        android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:text="Register Karo"
             android:textSize="15sp"
             android:textColor="#FFFFFF"
             android:backgroundTint="#5D3A1A"
-            
+            android:visibility="gone"
             android:layout_marginBottom="8dp"/>
 
         <TextView
@@ -151,31 +152,19 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="— Ya —"
-            android:textColor="#999999"
-            android:layout_marginBottom="20dp"/>
-
-    </RelativeLayout>
-            android:layout_marginTop="8dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:text="Aapka data sirf aapke account mein save hota hai"
             android:textSize="12sp"
             android:textColor="#999999"
             android:gravity="center"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="32dp"/>
+            android:layout_marginTop="16dp"/>
 
         <ProgressBar
-        android:id="@+id/progressBar"
-    android:visibility="gone"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        
-        android:layout_gravity="center"
-        android:layout_marginTop="8dp"/>
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_gravity="center"
+            android:layout_marginTop="8dp"/>
 
-</LinearLayout>
+    </LinearLayout>
 </ScrollView>
