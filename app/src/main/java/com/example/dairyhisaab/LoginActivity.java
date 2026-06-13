@@ -64,7 +64,6 @@ public class LoginActivity extends AppCompatActivity {
 
     private void initViews() {
         progressBar     = findViewById(R.id.progressBar);
-        btnGoogleSignIn = findViewById(R.id.btnGoogleSignIn);
         btnLogin        = findViewById(R.id.btnLogin);
         btnRegister     = findViewById(R.id.btnRegister);
         etEmail         = findViewById(R.id.etEmail);
@@ -72,14 +71,12 @@ public class LoginActivity extends AppCompatActivity {
         etName = findViewById(R.id.etName);
         layoutName = findViewById(R.id.layoutName);
         tvToggle        = findViewById(R.id.tvToggle);
-        etOtp           = findViewById(R.id.etOtp);
     }
 
     private void setupClickListeners() {
         btnLogin.setOnClickListener(v -> loginWithEmail());
         btnRegister.setOnClickListener(v -> registerWithEmail());
         tvToggle.setOnClickListener(v -> toggleMode());
-        btnGoogleSignIn.setOnClickListener(v -> signInWithGoogle());
     }
 
     private void setupGoogleSignIn() {
