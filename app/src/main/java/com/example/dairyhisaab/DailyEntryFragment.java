@@ -23,6 +23,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
+import com.google.firebase.auth.FirebaseAuth;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
@@ -33,34 +34,29 @@ import java.util.Locale;
 
 public class DailyEntryFragment extends Fragment {
 
-    // Header views
     private EditText etDate;
     private TextView btnMorning, btnEvening, btnPrevDay, btnNextDay;
     private TextView tvRateBanner;
 
-    // Quick entry views
     private EditText etQuickCode, etQuickQty, etQuickFat;
     private TextView tvQuickName, tvQuickAmount, tvAnimalToggle;
     private Button btnQuickSave;
 
-    // List + bottom
     private LinearLayout entryList;
     private TextView tvTotalSummary;
     private Button btnPrintSlip;
 
     private String selectedShift = "Subah";
-    private boolean isBuffalo = true; // true=भैंस, false=गाय
+    private boolean isBuffalo = true;
 
-    private double buffFatRate = 875.00;
-    private double buffCommission = 7.00;
-    private double cowFatRate = 875.00;
-    private double cowCommission = 7.00;
+    private double buffFatRate = 0, buffCommission = 0;
+    private double cowFatRate = 0, cowCommission = 0;
+    private double pfPerLiter = 0;
 
     private DairyDataManager dm;
     private List<Customer> customerList = new ArrayList<>();
-
-    // In-memory list for current session display
     private List<MilkEntry> sessionEntries = new ArrayList<>();
+    private Customer foundCustomer = null;
 
     public DailyEntryFragment() {}
 
@@ -73,31 +69,31 @@ public class DailyEntryFragment extends Fragment {
 
         dm = DairyDataManager.getInstance(getContext());
 
-        // Bind views
-        etDate          = view.findViewById(R.id.etDate);
-        btnMorning      = view.findViewById(R.id.btnMorning);
-        btnEvening      = view.findViewById(R.id.btnEvening);
-        btnPrevDay      = view.findViewById(R.id.btnPrevDay);
-        btnNextDay      = view.findViewById(R.id.btnNextDay);
-        tvRateBanner    = view.findViewById(R.id.tvRateBanner);
+        etDate         = view.findViewById(R.id.etDate);
+        btnMorning     = view.findViewById(R.id.btnMorning);
+        btnEvening     = view.findViewById(R.id.btnEvening);
+        btnPrevDay     = view.findViewById(R.id.btnPrevDay);
+        btnNextDay     = view.findViewById(R.id.btnNextDay);
+        tvRateBanner   = view.findViewById(R.id.tvRateBanner);
 
-        etQuickCode     = view.findViewById(R.id.etQuickCode);
-        etQuickQty      = view.findViewById(R.id.etQuickQty);
-        etQuickFat      = view.findViewById(R.id.etQuickFat);
-        tvQuickName     = view.findViewById(R.id.tvQuickName);
-        tvQuickAmount   = view.findViewById(R.id.tvQuickAmount);
-        tvAnimalToggle  = view.findViewById(R.id.tvAnimalToggle);
-        btnQuickSave    = view.findViewById(R.id.btnQuickSave);
+        etQuickCode    = view.findViewById(R.id.etQuickCode);
+        etQuickQty     = view.findViewById(R.id.etQuickQty);
+        etQuickFat     = view.findViewById(R.id.etQuickFat);
+        tvQuickName    = view.findViewById(R.id.tvQuickName);
+        tvQuickAmount  = view.findViewById(R.id.tvQuickAmount);
+        tvAnimalToggle = view.findViewById(R.id.tvAnimalToggle);
+        btnQuickSave   = view.findViewById(R.id.btnQuickSave);
 
-        entryList       = view.findViewById(R.id.entryList);
-        tvTotalSummary  = view.findViewById(R.id.tvTotalSummary);
-        btnPrintSlip    = view.findViewById(R.id.btnPrintSlip);
+        entryList      = view.findViewById(R.id.entryList);
+        tvTotalSummary = view.findViewById(R.id.tvTotalSummary);
+        btnPrintSlip   = view.findViewById(R.id.btnPrintSlip);
 
-        // Set today's date
+        // Today's date
         String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         etDate.setText(today);
 
-        updateRateBanner();
+        // Load active rates
+        loadActiveRates();
 
         // Date controls
         etDate.setOnClickListener(v -> openDatePicker());
@@ -121,13 +117,12 @@ public class DailyEntryFragment extends Fragment {
         etQuickCode.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int i, int i1, int i2) {}
             @Override public void afterTextChanged(Editable s) {}
-            @Override
-            public void onTextChanged(CharSequence s, int i, int i1, int i2) {
+            @Override public void onTextChanged(CharSequence s, int i, int i1, int i2) {
                 lookupMember(s.toString().trim());
             }
         });
 
-        // Auto calc on qty/fat change
+        // Qty/Fat auto calc
         TextWatcher calcWatcher = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int i, int i1, int i2) {}
             @Override public void afterTextChanged(Editable s) {}
@@ -138,26 +133,33 @@ public class DailyEntryFragment extends Fragment {
         etQuickQty.addTextChangedListener(calcWatcher);
         etQuickFat.addTextChangedListener(calcWatcher);
 
-        // Save button
         btnQuickSave.setOnClickListener(v -> saveQuickEntry());
-
-        // Print slip
         btnPrintSlip.setOnClickListener(v -> printSlipPdf());
 
-        // Load saved entries for today
         loadEntriesForCurrentDateShift();
 
         return view;
     }
 
-    private void updateRateBanner() {
-        tvRateBanner.setText("भैंस: ₹" + buffFatRate + "(+" + buffCommission +
-                ") | गाय: ₹" + cowFatRate + "(+" + cowCommission + ")");
+    // ── Active rate load karo ──
+    private void loadActiveRates() {
+        String date = etDate != null ? etDate.getText().toString().trim()
+                : new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        RateEntry active = dm.getActiveRate(date);
+        if (active != null) {
+            buffFatRate    = active.rate;
+            buffCommission = active.base;
+            cowFatRate     = active.rate;
+            cowCommission  = active.base;
+            pfPerLiter     = active.pfPerLiter;
+            tvRateBanner.setText("भैंस: ₹" + buffFatRate + "(+" + buffCommission +
+                    ") | PF: ₹" + pfPerLiter + "/L");
+        } else {
+            tvRateBanner.setText("⚠️ Rate set nahi hai — Rate tab mein jaayen");
+        }
     }
 
-    // ── Member lookup by code ──
-    private Customer foundCustomer = null;
-
+    // ── Member lookup ──
     private void lookupMember(String code) {
         foundCustomer = null;
         tvQuickName.setText("— Member naam —");
@@ -186,11 +188,14 @@ public class DailyEntryFragment extends Fragment {
             return;
         }
         try {
-            double qty = Double.parseDouble(qStr);
-            double fat = Double.parseDouble(fStr);
+            double qty  = Double.parseDouble(qStr);
+            double fat  = Double.parseDouble(fStr);
             double rate = (isBuffalo ? buffFatRate : cowFatRate) * fat / 100.0
                         + (isBuffalo ? buffCommission : cowCommission);
-            tvQuickAmount.setText(String.format(Locale.getDefault(), "₹%.2f", qty * rate));
+            double gross = qty * rate;
+            double pf    = qty * pfPerLiter;
+            double net   = gross - pf;
+            tvQuickAmount.setText(String.format(Locale.getDefault(), "₹%.2f", net));
         } catch (Exception e) {
             tvQuickAmount.setText("₹0.00");
         }
@@ -208,13 +213,11 @@ public class DailyEntryFragment extends Fragment {
             Toast.makeText(getContext(), "Qty daalo!", Toast.LENGTH_SHORT).show();
             return;
         }
-
         try {
             double qty   = Double.parseDouble(qStr);
             double fat   = fStr.isEmpty() ? 0 : Double.parseDouble(fStr);
             double rate  = (isBuffalo ? buffFatRate : cowFatRate) * fat / 100.0
                          + (isBuffalo ? buffCommission : cowCommission);
-            double total = qty * rate;
 
             MilkEntry entry = new MilkEntry();
             entry.id    = System.currentTimeMillis() + "_" + foundCustomer.id;
@@ -225,17 +228,15 @@ public class DailyEntryFragment extends Fragment {
             entry.fat   = fat;
             entry.rate  = rate;
 
-            // Save to DB
             List<MilkEntry> all = dm.getEntries();
             all.add(entry);
             dm.saveEntries(all);
 
-            // Add to session list and refresh UI
             sessionEntries.add(entry);
-            addEntryRowToList(entry, foundCustomer, total);
+            addEntryRowToList(entry, foundCustomer);
             updateTotalSummary();
 
-            // Clear inputs
+            // Clear
             etQuickCode.setText("");
             etQuickQty.setText("");
             etQuickFat.setText("");
@@ -250,61 +251,55 @@ public class DailyEntryFragment extends Fragment {
         }
     }
 
-    // ── Add one row to the saved entries list ──
-    private void addEntryRowToList(MilkEntry entry, Customer c, double total) {
+    // ── Add row to list ──
+    private void addEntryRowToList(MilkEntry entry, Customer c) {
+        double gross = entry.qty * entry.rate;
+        double pf    = entry.qty * pfPerLiter;
+        double net   = gross - pf;
+
         LinearLayout row = new LinearLayout(getContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(12, 10, 12, 10);
         row.setTag(entry.id);
-
-        // Alternate row color
         int rowColor = (entryList.getChildCount() % 2 == 0)
                 ? Color.WHITE : Color.parseColor("#F1F8E9");
         row.setBackgroundColor(rowColor);
 
         // Code
-        TextView tvCode = makeCell(c.memberCode, 40, false, "#1B5E20");
-        row.addView(tvCode);
-
+        row.addView(makeCell(c.memberCode, 42, false, "#1B5E20"));
         // Name
         TextView tvName = makeCell(c.name, 0, true, "#212121");
         ((LinearLayout.LayoutParams) tvName.getLayoutParams()).weight = 2f;
         row.addView(tvName);
-
-        // Qty
-        TextView tvQty = makeCell(String.format(Locale.getDefault(), "%.1f", entry.qty),
-                45, false, "#212121");
-        tvQty.setGravity(android.view.Gravity.CENTER);
-        row.addView(tvQty);
-
+        // Milk
+        row.addView(makeCellCenter(
+                String.format(Locale.getDefault(), "%.1f", entry.qty), 40, false, "#212121"));
         // Fat
-        TextView tvFat = makeCell(String.format(Locale.getDefault(), "%.1f", entry.fat),
-                40, false, "#212121");
-        tvFat.setGravity(android.view.Gravity.CENTER);
-        row.addView(tvFat);
+        row.addView(makeCellCenter(
+                String.format(Locale.getDefault(), "%.1f", entry.fat), 36, false, "#212121"));
+        // Rate
+        row.addView(makeCellCenter(
+                String.format(Locale.getDefault(), "%.1f", entry.rate), 42, false, "#212121"));
+        // PF Deduction
+        row.addView(makeCellCenter(
+                String.format(Locale.getDefault(), "₹%.1f", pf), 44, false, "#C62828"));
+        // Rest Amount
+        row.addView(makeCellEnd(
+                String.format(Locale.getDefault(), "₹%.2f", net), 56, true, "#2E7D32"));
 
-        // Amount
-        TextView tvAmt = makeCell(String.format(Locale.getDefault(), "₹%.2f", total),
-                60, true, "#2E7D32");
-        tvAmt.setGravity(android.view.Gravity.END);
-        row.addView(tvAmt);
-
-        // Delete button
+        // Delete
         TextView tvDel = new TextView(getContext());
-        LinearLayout.LayoutParams delP = new LinearLayout.LayoutParams(50,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        tvDel.setLayoutParams(delP);
+        tvDel.setLayoutParams(new LinearLayout.LayoutParams(44,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
         tvDel.setText("🗑");
-        tvDel.setTextSize(16);
+        tvDel.setTextSize(14);
         tvDel.setGravity(android.view.Gravity.CENTER);
         tvDel.setClickable(true);
         tvDel.setFocusable(true);
         tvDel.setOnClickListener(v -> {
-            // Remove from DB
             List<MilkEntry> all = dm.getEntries();
             all.removeIf(e -> e.id.equals(entry.id));
             dm.saveEntries(all);
-            // Remove from session
             sessionEntries.removeIf(e -> e.id.equals(entry.id));
             entryList.removeView(row);
             updateTotalSummary();
@@ -316,156 +311,227 @@ public class DailyEntryFragment extends Fragment {
 
     private TextView makeCell(String text, int widthDp, boolean bold, String color) {
         TextView tv = new TextView(getContext());
-        LinearLayout.LayoutParams lp;
-        if (widthDp == 0) {
-            lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT);
-        } else {
-            int px = (int) (widthDp * getResources().getDisplayMetrics().density);
-            lp = new LinearLayout.LayoutParams(px, ViewGroup.LayoutParams.WRAP_CONTENT);
-        }
+        LinearLayout.LayoutParams lp = widthDp == 0
+                ? new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT)
+                : new LinearLayout.LayoutParams(dp(widthDp), ViewGroup.LayoutParams.WRAP_CONTENT);
         tv.setLayoutParams(lp);
         tv.setText(text);
-        tv.setTextSize(12);
+        tv.setTextSize(11);
         tv.setTextColor(Color.parseColor(color));
         if (bold) tv.setTypeface(null, Typeface.BOLD);
         return tv;
     }
 
-    // ── Load existing entries for current date+shift ──
+    private TextView makeCellCenter(String text, int widthDp, boolean bold, String color) {
+        TextView tv = makeCell(text, widthDp, bold, color);
+        tv.setGravity(android.view.Gravity.CENTER);
+        return tv;
+    }
+
+    private TextView makeCellEnd(String text, int widthDp, boolean bold, String color) {
+        TextView tv = makeCell(text, widthDp, bold, color);
+        tv.setGravity(android.view.Gravity.END);
+        return tv;
+    }
+
+    private int dp(int val) {
+        return (int) (val * getResources().getDisplayMetrics().density);
+    }
+
+    // ── Load saved entries ──
     private void loadEntriesForCurrentDateShift() {
         entryList.removeAllViews();
         sessionEntries.clear();
+        loadActiveRates();
         customerList = dm.getCustomers();
-
         String date = etDate.getText().toString().trim();
-        List<MilkEntry> all = dm.getEntries();
 
-        for (MilkEntry e : all) {
+        for (MilkEntry e : dm.getEntries()) {
             if (e.date.equals(date) && e.shift.equalsIgnoreCase(selectedShift)) {
                 sessionEntries.add(e);
                 Customer c = findCustomer(e.cid);
-                if (c != null) {
-                    double total = e.qty * e.rate;
-                    addEntryRowToList(e, c, total);
-                }
+                if (c != null) addEntryRowToList(e, c);
             }
         }
         updateTotalSummary();
     }
 
     private Customer findCustomer(String cid) {
-        for (Customer c : customerList) {
-            if (c.id.equals(cid)) return c;
-        }
+        for (Customer c : customerList) if (c.id.equals(cid)) return c;
         return null;
     }
 
-    // ── Update bottom total bar ──
     private void updateTotalSummary() {
-        double total = 0;
-        for (MilkEntry e : sessionEntries) total += e.qty * e.rate;
+        double gross = 0, pf = 0;
+        for (MilkEntry e : sessionEntries) {
+            gross += e.qty * e.rate;
+            pf    += e.qty * pfPerLiter;
+        }
+        double net = gross - pf;
         tvTotalSummary.setText(String.format(Locale.getDefault(),
-                "Total: %d entries | ₹%.2f", sessionEntries.size(), total));
+                "%d entries | Gross:₹%.2f PF:₹%.2f Net:₹%.2f",
+                sessionEntries.size(), gross, pf, net));
     }
 
-    // ── Print Slip as PDF ──
+    // ── Print Slip PDF ──
     private void printSlipPdf() {
         if (sessionEntries.isEmpty()) {
             Toast.makeText(getContext(), "Koi entry nahi hai!", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        // Dairy naam Firebase se
+        String dairyName = "Dairy Hisaab";
+        try {
+            com.google.firebase.auth.FirebaseUser user =
+                    FirebaseAuth.getInstance().getCurrentUser();
+            if (user != null && user.getDisplayName() != null
+                    && !user.getDisplayName().isEmpty()) {
+                dairyName = user.getDisplayName();
+            }
+        } catch (Exception ignored) {}
+
         PdfDocument doc = new PdfDocument();
-        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(595, 842, 1).create();
+        PdfDocument.PageInfo pageInfo =
+                new PdfDocument.PageInfo.Builder(595, 842, 1).create();
         PdfDocument.Page page = doc.startPage(pageInfo);
         Canvas canvas = page.getCanvas();
-        Paint paint = new Paint();
-        paint.setAntiAlias(true);
+        Paint p = new Paint();
+        p.setAntiAlias(true);
 
-        int y = 40;
+        int y = 45;
+        int left = 40;
 
-        // Title
-        paint.setTextSize(20);
-        paint.setTypeface(Typeface.DEFAULT_BOLD);
-        paint.setColor(Color.parseColor("#1B5E20"));
-        canvas.drawText("Dairy Hisaab - Collection Slip", 40, y, paint);
-        y += 28;
+        // ── Dairy Name ──
+        p.setTextSize(22);
+        p.setTypeface(Typeface.DEFAULT_BOLD);
+        p.setColor(Color.parseColor("#1B5E20"));
+        canvas.drawText(dairyName, left, y, p);
+        y += 26;
 
-        // Date + Shift
-        paint.setTextSize(13);
-        paint.setTypeface(Typeface.DEFAULT);
-        paint.setColor(Color.DKGRAY);
-        canvas.drawText("Date: " + etDate.getText().toString() +
-                "   Shift: " + selectedShift, 40, y, paint);
-        y += 20;
+        // ── Subtitle ──
+        p.setTextSize(12);
+        p.setTypeface(Typeface.DEFAULT);
+        p.setColor(Color.DKGRAY);
+        canvas.drawText("Collection Slip  |  " + selectedShift + " Shift  |  " +
+                etDate.getText().toString(), left, y, p);
+        y += 8;
 
-        // Divider
-        paint.setColor(Color.parseColor("#1B5E20"));
-        paint.setStrokeWidth(1.5f);
-        canvas.drawLine(40, y, 555, y, paint);
-        y += 16;
+        // ── Divider ──
+        p.setColor(Color.parseColor("#1B5E20"));
+        p.setStrokeWidth(1.5f);
+        canvas.drawLine(left, y, 555, y, p);
+        y += 18;
 
-        // Table header
-        paint.setTextSize(12);
-        paint.setTypeface(Typeface.DEFAULT_BOLD);
-        paint.setColor(Color.BLACK);
-        canvas.drawText("Code", 40, y, paint);
-        canvas.drawText("Member", 100, y, paint);
-        canvas.drawText("Qty", 310, y, paint);
-        canvas.drawText("Fat", 370, y, paint);
-        canvas.drawText("Amount", 460, y, paint);
+        // ── Member summary (single entry slip style) ──
+        // Agar sirf ek member ki entry ho to uski detail upar dikhao
+        if (sessionEntries.size() == 1) {
+            MilkEntry e  = sessionEntries.get(0);
+            Customer  c  = findCustomer(e.cid);
+            if (c != null) {
+                p.setTextSize(13);
+                p.setTypeface(Typeface.DEFAULT_BOLD);
+                p.setColor(Color.BLACK);
+                canvas.drawText("Member: " + c.name, left, y, p);
+                y += 18;
+                p.setTypeface(Typeface.DEFAULT);
+                p.setTextSize(12);
+                p.setColor(Color.DKGRAY);
+                String fh = (c.fatherHusband != null && !c.fatherHusband.isEmpty())
+                        ? "S/o W/o: " + c.fatherHusband : "";
+                if (!fh.isEmpty()) { canvas.drawText(fh, left, y, p); y += 16; }
+                canvas.drawText("Code No.: " + c.memberCode +
+                        (c.uniqueId != null && !c.uniqueId.isEmpty()
+                                ? "   Un.No.: " + c.uniqueId : ""), left, y, p);
+                y += 20;
+                p.setStrokeWidth(0.5f);
+                p.setColor(Color.LTGRAY);
+                canvas.drawLine(left, y, 555, y, p);
+                y += 16;
+            }
+        }
+
+        // ── Table Header ──
+        p.setTextSize(11);
+        p.setTypeface(Typeface.DEFAULT_BOLD);
+        p.setColor(Color.parseColor("#1B5E20"));
+        int[] cols = {left, left+60, left+180, left+240, left+295, left+365, left+440};
+        canvas.drawText("Code",    cols[0], y, p);
+        canvas.drawText("Member",  cols[1], y, p);
+        canvas.drawText("Milk L",  cols[2], y, p);
+        canvas.drawText("Fat",     cols[3], y, p);
+        canvas.drawText("Rate",    cols[4], y, p);
+        canvas.drawText("PF Ded.", cols[5], y, p);
+        canvas.drawText("Net Amt", cols[6], y, p);
         y += 6;
-        paint.setStrokeWidth(0.8f);
-        canvas.drawLine(40, y, 555, y, paint);
+        p.setStrokeWidth(1f);
+        p.setColor(Color.parseColor("#1B5E20"));
+        canvas.drawLine(left, y, 555, y, p);
         y += 14;
 
-        // Rows
-        paint.setTypeface(Typeface.DEFAULT);
-        paint.setTextSize(11);
-        double grandTotal = 0;
+        // ── Rows ──
+        double grandGross = 0, grandPf = 0;
+        p.setTypeface(Typeface.DEFAULT);
+        p.setTextSize(11);
 
         for (MilkEntry e : sessionEntries) {
-            Customer c = findCustomer(e.cid);
-            String name = c != null ? c.name : e.cid;
-            String code = c != null ? c.memberCode : "-";
-            double amt  = e.qty * e.rate;
-            grandTotal += amt;
+            Customer c    = findCustomer(e.cid);
+            String name   = c != null ? c.name : e.cid;
+            String code   = c != null ? c.memberCode : "-";
+            double gross  = e.qty * e.rate;
+            double pf     = e.qty * pfPerLiter;
+            double net    = gross - pf;
+            grandGross   += gross;
+            grandPf      += pf;
 
-            paint.setColor(Color.BLACK);
-            canvas.drawText(code, 40, y, paint);
-            canvas.drawText(name, 100, y, paint);
-            canvas.drawText(String.format(Locale.getDefault(), "%.1f L", e.qty), 310, y, paint);
-            canvas.drawText(String.format(Locale.getDefault(), "%.1f", e.fat), 370, y, paint);
-            paint.setColor(Color.parseColor("#2E7D32"));
-            canvas.drawText(String.format(Locale.getDefault(), "Rs %.2f", amt), 460, y, paint);
+            p.setColor(Color.BLACK);
+            canvas.drawText(code,  cols[0], y, p);
+            canvas.drawText(name,  cols[1], y, p);
+            canvas.drawText(String.format(Locale.getDefault(), "%.1f", e.qty),  cols[2], y, p);
+            canvas.drawText(String.format(Locale.getDefault(), "%.1f", e.fat),  cols[3], y, p);
+            canvas.drawText(String.format(Locale.getDefault(), "%.2f", e.rate), cols[4], y, p);
+            p.setColor(Color.parseColor("#C62828"));
+            canvas.drawText(String.format(Locale.getDefault(), "%.2f", pf),     cols[5], y, p);
+            p.setColor(Color.parseColor("#2E7D32"));
+            canvas.drawText(String.format(Locale.getDefault(), "%.2f", net),    cols[6], y, p);
             y += 18;
         }
 
-        // Grand total
+        // ── Grand Total ──
         y += 4;
-        paint.setColor(Color.parseColor("#1B5E20"));
-        paint.setStrokeWidth(1f);
-        canvas.drawLine(40, y, 555, y, paint);
+        p.setColor(Color.DKGRAY);
+        p.setStrokeWidth(0.8f);
+        canvas.drawLine(left, y, 555, y, p);
         y += 16;
-        paint.setTypeface(Typeface.DEFAULT_BOLD);
-        paint.setTextSize(13);
-        paint.setColor(Color.BLACK);
-        canvas.drawText("Grand Total:", 310, y, paint);
-        paint.setColor(Color.parseColor("#1B5E20"));
-        canvas.drawText(String.format(Locale.getDefault(), "Rs %.2f", grandTotal), 460, y, paint);
+        p.setTypeface(Typeface.DEFAULT_BOLD);
+        p.setTextSize(12);
+        p.setColor(Color.BLACK);
+        canvas.drawText("TOTAL:", cols[4], y, p);
+        p.setColor(Color.parseColor("#C62828"));
+        canvas.drawText(String.format(Locale.getDefault(), "%.2f", grandPf), cols[5], y, p);
+        p.setColor(Color.parseColor("#2E7D32"));
+        canvas.drawText(String.format(Locale.getDefault(), "%.2f", grandGross - grandPf),
+                cols[6], y, p);
+        y += 30;
+
+        // ── Footer ──
+        p.setTextSize(10);
+        p.setTypeface(Typeface.DEFAULT);
+        p.setColor(Color.GRAY);
+        canvas.drawText("Generated by Dairy Hisaab App", left, y, p);
 
         doc.finishPage(page);
 
-        // Save PDF
+        // ── Save & Open ──
         try {
             File dir = getContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
             if (dir != null && !dir.exists()) dir.mkdirs();
-            String fileName = "slip_" + etDate.getText().toString() + "_" + selectedShift + ".pdf";
+            String fileName = "slip_" + etDate.getText().toString()
+                    + "_" + selectedShift + ".pdf";
             File file = new File(dir, fileName);
             doc.writeTo(new FileOutputStream(file));
             doc.close();
 
-            // Open PDF
             Uri uri = FileProvider.getUriForFile(getContext(),
                     getContext().getPackageName() + ".provider", file);
             Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -474,7 +540,8 @@ public class DailyEntryFragment extends Fragment {
             startActivity(intent);
 
         } catch (Exception e) {
-            Toast.makeText(getContext(), "PDF error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), "PDF error: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
         }
     }
 
@@ -529,4 +596,4 @@ public class DailyEntryFragment extends Fragment {
         }
         loadEntriesForCurrentDateShift();
     }
-                }
+                            }
