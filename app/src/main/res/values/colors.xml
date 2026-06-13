@@ -1,19 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_dark_blue">#031230</color>
-    <color name="dairy_blue_primary">#0D47A1</color>
-    <color name="dairy_blue_light">#1565C0</color>
-    <color name="dairy_blue_dark">#0A3880</color>
+    <!-- 🌿 Premium Green Theme -->
+    <color name="bg_dark_blue">#0B2E13</color>
+    <color name="dairy_blue_primary">#1B5E20</color>
+    <color name="dairy_blue_light">#4CAF50</color>
+    <color name="dairy_blue_dark">#0F4014</color>
 
-    <color name="input_bg_blue">#F0F7FF</color>
-    <color name="input_border_blue">#BBDEFB</color>
+    <color name="input_bg_blue">#F1F8E9</color>
+    <color name="input_border_blue">#C8E6C9</color>
     <color name="white">#FFFFFF</color>
     <color name="text_dark">#212121</color>
     <color name="text_muted">#78909C</color>
-    <color name="text_hint_blue">#90CAF9</color>
+    <color name="text_hint_blue">#A5D6A7</color>
 
     <color name="accent_green">#2E7D32</color>
     <color name="accent_green_bg">#E8F5E9</color>
     <color name="accent_red">#C62828</color>
     <color name="accent_red_bg">#FFEBEE</color>
+
+    <!-- ✨ Premium Extras -->
+    <color name="gold_accent">#D4AF37</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="divider_color">#E0E0E0</color>
+    <color name="window_bg">#F4FAF5</color>
 </resources>
