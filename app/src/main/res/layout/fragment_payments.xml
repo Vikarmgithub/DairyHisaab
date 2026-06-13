@@ -39,6 +39,7 @@
             android:orientation="vertical"
             android:paddingBottom="20dp">
 
+            <!-- FORM CARD -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -57,13 +58,10 @@
                     android:textSize="14sp"
                     android:layout_marginBottom="12dp"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="PAYMENT DATE"
-                    android:textColor="@color/dairy_blue_light"
-                    android:textSize="10sp"
-                    android:textStyle="bold"/>
+                <!-- DATE -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PAYMENT DATE" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"/>
                 <EditText
                     android:id="@+id/etPayDate"
                     android:layout_width="match_parent"
@@ -77,13 +75,10 @@
                     android:layout_marginTop="4dp"
                     android:layout_marginBottom="12dp"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="MEMBER CODE DAALO"
-                    android:textColor="@color/dairy_blue_light"
-                    android:textSize="10sp"
-                    android:textStyle="bold"/>
+                <!-- MEMBER CODE -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="MEMBER CODE DAALO" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"/>
                 <EditText
                     android:id="@+id/etMemberCode"
                     android:layout_width="match_parent"
@@ -105,13 +100,10 @@
                     android:layout_marginBottom="12dp"
                     android:paddingHorizontal="4dp"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="AMOUNT (₹)"
-                    android:textColor="@color/dairy_blue_light"
-                    android:textSize="10sp"
-                    android:textStyle="bold"/>
+                <!-- AMOUNT -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="AMOUNT (₹)" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"/>
                 <EditText
                     android:id="@+id/etAmount"
                     android:layout_width="match_parent"
@@ -124,13 +116,10 @@
                     android:layout_marginTop="4dp"
                     android:layout_marginBottom="12dp"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="NOTE / REMARK"
-                    android:textColor="@color/dairy_blue_light"
-                    android:textSize="10sp"
-                    android:textStyle="bold"/>
+                <!-- NOTE -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="NOTE / REMARK" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"/>
                 <EditText
                     android:id="@+id/etNote"
                     android:layout_width="match_parent"
@@ -143,17 +132,79 @@
                     android:layout_marginTop="4dp"
                     android:layout_marginBottom="16dp"/>
 
+                <!-- SIGNATURES -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="SIGNATURES (OPTIONAL)" android:textColor="@color/dairy_blue_light"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="2"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="6dp">
+                        <Button
+                            android:id="@+id/btnPaidBy"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:text="✍️ Paid By"
+                            android:backgroundTint="#1a3c5e"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"/>
+                        <TextView
+                            android:id="@+id/tvPaidSignStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"
+                            android:textSize="11sp"
+                            android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="6dp">
+                        <Button
+                            android:id="@+id/btnReceivedBy"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:text="✍️ Received By"
+                            android:backgroundTint="#065f46"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"/>
+                        <TextView
+                            android:id="@+id/tvReceivedSignStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"
+                            android:textSize="11sp"
+                            android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+
+                </LinearLayout>
+
                 <Button
                     android:id="@+id/btnSavePayment"
                     android:layout_width="match_parent"
                     android:layout_height="46dp"
-                    android:text="✅ Save Payment"
+                    android:text="✅ SAVE PAYMENT"
                     android:textColor="@color/white"
                     android:textStyle="bold"
                     android:backgroundTint="@color/dairy_blue_primary"/>
 
             </LinearLayout>
 
+            <!-- RECENT PAYMENTS -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
