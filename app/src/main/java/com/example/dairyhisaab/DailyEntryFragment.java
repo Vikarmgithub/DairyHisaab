@@ -142,6 +142,14 @@ public class DailyEntryFragment extends Fragment {
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Naya member ya naya rate add hone ke baad turant reflect ho
+        customerList = dm.getCustomers();
+        loadActiveRates();
+    }
+
     // ── Active rate load ──
     private void loadActiveRates() {
         String date = etDate != null ? etDate.getText().toString().trim()
