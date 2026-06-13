@@ -36,7 +36,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private Button btnGoogleSignIn, btnLogin, btnRegister;
     private EditText etEmail, etPassword, etName;
-    private LinearLayout layoutName;
+    private android.view.View layoutName;
     private TextView tvToggle;
     private boolean isLoginMode = true;
 
