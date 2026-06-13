@@ -27,11 +27,12 @@
             android:id="@+id/tvRateBanner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Loading active milk rates..."
-            android:textColor="#90CAF9"
+            android:text="Loading rates..."
+            android:textColor="#C8E6C9"
             android:textSize="12sp"
             android:layout_marginTop="2dp" />
 
+        <!-- Date Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -81,6 +82,7 @@
                 android:focusable="true"/>
         </LinearLayout>
 
+        <!-- Subah / Shaam Toggle -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="38dp"
@@ -96,7 +98,7 @@
                 android:layout_weight="1"
                 android:text="🌅 Subah"
                 android:gravity="center"
-                android:textColor="#212121"
+                android:textColor="#1B5E20"
                 android:background="@color/white"
                 android:textStyle="bold"
                 android:textSize="12sp"
@@ -117,61 +119,151 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- SEARCH BOX -->
+    <!-- QUICK ENTRY INPUT BOX -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="vertical"
         android:background="#FFFFFF"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="8dp"
-        android:elevation="2dp">
+        android:padding="12dp"
+        android:elevation="4dp">
 
-        <EditText
-            android:id="@+id/etMemberSearch"
+        <!-- Row 1: Code + Name -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:hint="🔍 Member naam se search karein..."
-            android:textSize="13sp"
-            android:paddingHorizontal="12dp"
-            android:background="@drawable/bg_search_box"
-            android:inputType="textPersonName"
-            android:imeOptions="actionSearch"
-            android:maxLines="1" />
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <EditText
+                android:id="@+id/etQuickCode"
+                android:layout_width="80dp"
+                android:layout_height="44dp"
+                android:hint="Code"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:inputType="text"
+                android:background="@drawable/bg_search_box"
+                android:paddingHorizontal="8dp"
+                android:imeOptions="actionNext"/>
+
+            <TextView
+                android:id="@+id/tvQuickName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="— Member naam —"
+                android:textSize="13sp"
+                android:textColor="#388E3C"
+                android:textStyle="bold"
+                android:layout_marginHorizontal="10dp"/>
+
+            <!-- Animal Toggle -->
+            <TextView
+                android:id="@+id/tvAnimalToggle"
+                android:layout_width="60dp"
+                android:layout_height="36dp"
+                android:text="भैंस"
+                android:gravity="center"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="#1B5E20"
+                android:clickable="true"
+                android:focusable="true"/>
+        </LinearLayout>
+
+        <!-- Row 2: Weight + Fat + Amount + Save -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/etQuickQty"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:hint="Qty L"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:inputType="numberDecimal"
+                android:background="@drawable/bg_search_box"
+                android:imeOptions="actionNext"/>
+
+            <EditText
+                android:id="@+id/etQuickFat"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:hint="Fat %"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:inputType="numberDecimal"
+                android:background="@drawable/bg_search_box"
+                android:layout_marginHorizontal="6dp"
+                android:imeOptions="actionNext"/>
+
+            <TextView
+                android:id="@+id/tvQuickAmount"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:text="₹0.00"
+                android:gravity="center"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#2E7D32"
+                android:background="#E8F5E9"/>
+
+            <Button
+                android:id="@+id/btnQuickSave"
+                android:layout_width="60dp"
+                android:layout_height="44dp"
+                android:text="✔"
+                android:textSize="18sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#2E7D32"
+                android:layout_marginStart="6dp"
+                android:padding="0dp"/>
+        </LinearLayout>
     </LinearLayout>
 
-    <!-- COLUMN HEADERS -->
+    <!-- SAVED ENTRIES LIST HEADER -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="@color/input_bg_blue"
-        android:padding="10dp"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="4dp">
+        android:background="#E8F5E9"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="6dp">
 
         <TextView
-            android:layout_width="30dp"
+            android:layout_width="40dp"
             android:layout_height="wrap_content"
-            android:text="#"
-            android:textColor="@color/dairy_blue_light"
+            android:text="Code"
+            android:textColor="#1B5E20"
             android:textStyle="bold"
             android:textSize="11sp"/>
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_weight="2"
             android:text="Member"
-            android:textColor="@color/dairy_blue_light"
+            android:textColor="#1B5E20"
             android:textStyle="bold"
             android:textSize="11sp"/>
 
         <TextView
-            android:layout_width="50dp"
+            android:layout_width="45dp"
             android:layout_height="wrap_content"
-            android:text="Qty L"
+            android:text="Qty"
             android:gravity="center"
-            android:textColor="@color/dairy_blue_light"
+            android:textColor="#1B5E20"
             android:textStyle="bold"
             android:textSize="11sp"/>
 
@@ -180,21 +272,30 @@
             android:layout_height="wrap_content"
             android:text="Fat"
             android:gravity="center"
-            android:textColor="@color/dairy_blue_light"
+            android:textColor="#1B5E20"
             android:textStyle="bold"
             android:textSize="11sp"/>
 
         <TextView
             android:layout_width="60dp"
             android:layout_height="wrap_content"
-            android:text="Total ₹"
+            android:text="Amount"
             android:gravity="end"
-            android:textColor="@color/dairy_blue_light"
+            android:textColor="#1B5E20"
+            android:textStyle="bold"
+            android:textSize="11sp"/>
+
+        <TextView
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:text="Action"
+            android:gravity="center"
+            android:textColor="#1B5E20"
             android:textStyle="bold"
             android:textSize="11sp"/>
     </LinearLayout>
 
-    <!-- ENTRY LIST -->
+    <!-- SAVED ENTRIES SCROLLABLE LIST -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -205,19 +306,38 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingBottom="16dp" />
+            android:paddingBottom="8dp"/>
     </ScrollView>
 
-    <!-- SAVE BUTTON -->
-    <Button
-        android:id="@+id/btnSaveAll"
+    <!-- BOTTOM: Total + Print -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:text="💾 Save All Entries"
-        android:textColor="@color/white"
-        android:textStyle="bold"
-        android:backgroundTint="@color/dairy_green_primary"
-        android:layout_margin="16dp"/>
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#1B5E20"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tvTotalSummary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Total: 0 entries | ₹0.00"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="13sp"/>
+
+        <Button
+            android:id="@+id/btnPrintSlip"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="🖨 Print Slip"
+            android:textColor="#1B5E20"
+            android:backgroundTint="#FFFFFF"
+            android:textSize="12sp"
+            android:padding="8dp"/>
+    </LinearLayout>
 
 </LinearLayout>
