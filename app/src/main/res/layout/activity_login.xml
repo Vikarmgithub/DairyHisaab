@@ -134,7 +134,7 @@
             android:textSize="15sp"
             android:textColor="#FFFFFF"
             android:backgroundTint="#5D3A1A"
-            android:visibility="gone"
+            
             android:layout_marginBottom="8dp"/>
 
         <TextView
@@ -170,7 +170,7 @@
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:visibility="gone"
+        
         android:layout_gravity="center"
         android:layout_marginTop="8dp"/>
 
