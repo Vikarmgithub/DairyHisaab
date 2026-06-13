@@ -21,6 +21,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.fragment.app.Fragment;
+import com.google.firebase.auth.FirebaseAuth;
 import java.io.ByteArrayOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -191,6 +192,19 @@ public class PaymentsFragment extends Fragment {
         btnOk.setBackgroundColor(0xFFbe123c);
         btnOk.setTextColor(Color.WHITE);
 
+        // ── Forgot PIN link ──
+        TextView tvForgotPin = new TextView(getContext());
+        tvForgotPin.setText("🔑 PIN bhool gaye? Login password se reset karo");
+        tvForgotPin.setTextColor(0xFF1d6ec9);
+        tvForgotPin.setPadding(0, 16, 0, 0);
+        tvForgotPin.setTextSize(13);
+        tvForgotPin.setClickable(true);
+        tvForgotPin.setPaintFlags(tvForgotPin.getPaintFlags() | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
+        tvForgotPin.setOnClickListener(v -> {
+            d.dismiss();
+            showPinResetDialog();
+        });
+
         btnOk.setOnClickListener(v -> {
             if (dm.verifyPin(etPin.getText().toString().trim())) {
                 d.dismiss();
@@ -204,8 +218,127 @@ public class PaymentsFragment extends Fragment {
         layout.addView(title);
         layout.addView(etPin);
         layout.addView(btnOk);
+        layout.addView(tvForgotPin);
         d.setContentView(layout);
         d.show();
+    }
+
+    // ── PIN Reset: login password se verify karke naya PIN set karo ──
+    void showPinResetDialog() {
+        com.google.firebase.auth.FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null || user.getEmail() == null) {
+            Toast.makeText(getContext(), "❌ Koi login account nahi mila.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String userEmail = user.getEmail();
+
+        Dialog d2 = new Dialog(getContext());
+        d2.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(56, 56, 56, 56);
+        layout.setBackgroundColor(Color.WHITE);
+
+        TextView title = new TextView(getContext());
+        title.setText("🔑 PIN RESET KARO");
+        title.setTextSize(16);
+        title.setTextColor(0xFF0369a1);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setPadding(0, 0, 0, 6);
+
+        TextView subtitle = new TextView(getContext());
+        subtitle.setText("Account: " + userEmail);
+        subtitle.setTextSize(12);
+        subtitle.setTextColor(0xFF64748b);
+        subtitle.setPadding(0, 0, 0, 20);
+
+        // Step 1: Login password
+        EditText etPassword = new EditText(getContext());
+        etPassword.setHint("Login password daalo");
+        etPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        etPassword.setPadding(20, 14, 20, 14);
+        etPassword.setBackgroundColor(0xFFF4F7FC);
+        LinearLayout.LayoutParams lp1 = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp1.setMargins(0, 0, 0, 16);
+        etPassword.setLayoutParams(lp1);
+
+        // Step 2: Naya PIN
+        EditText etNewPin = new EditText(getContext());
+        etNewPin.setHint("Naya PIN daalo (4-6 digit)");
+        etNewPin.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
+                android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        etNewPin.setPadding(20, 14, 20, 14);
+        etNewPin.setBackgroundColor(0xFFF4F7FC);
+        LinearLayout.LayoutParams lp2 = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp2.setMargins(0, 0, 0, 16);
+        etNewPin.setLayoutParams(lp2);
+
+        // Step 3: Confirm PIN
+        EditText etConfirmPin = new EditText(getContext());
+        etConfirmPin.setHint("PIN dobara daalo");
+        etConfirmPin.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
+                android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        etConfirmPin.setPadding(20, 14, 20, 14);
+        etConfirmPin.setBackgroundColor(0xFFF4F7FC);
+        LinearLayout.LayoutParams lp3 = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp3.setMargins(0, 0, 0, 20);
+        etConfirmPin.setLayoutParams(lp3);
+
+        Button btnReset = new Button(getContext());
+        btnReset.setText("✅ PIN RESET KARO");
+        btnReset.setBackgroundColor(0xFF0369a1);
+        btnReset.setTextColor(Color.WHITE);
+
+        btnReset.setOnClickListener(v -> {
+            String password  = etPassword.getText().toString().trim();
+            String newPin    = etNewPin.getText().toString().trim();
+            String confirmPin = etConfirmPin.getText().toString().trim();
+
+            if (password.isEmpty()) {
+                Toast.makeText(getContext(), "Login password daalo!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (newPin.length() < 4) {
+                Toast.makeText(getContext(), "PIN kam se kam 4 digit ka hona chahiye!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!newPin.equals(confirmPin)) {
+                Toast.makeText(getContext(), "PIN match nahi kiya!", Toast.LENGTH_SHORT).show();
+                etConfirmPin.setText("");
+                return;
+            }
+
+            // Firebase re-authentication
+            com.google.firebase.auth.AuthCredential credential =
+                com.google.firebase.auth.EmailAuthProvider.getCredential(userEmail, password);
+
+            user.reauthenticate(credential)
+                .addOnSuccessListener(task -> {
+                    // Password sahi — ab naya PIN save karo
+                    dm.savePin(newPin);
+                    d2.dismiss();
+                    Toast.makeText(getContext(), "✅ Naya PIN set ho gaya!", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getContext(),
+                        "❌ Galat password! Login password sahi daalo.", Toast.LENGTH_LONG).show();
+                    etPassword.setText("");
+                });
+        });
+
+        layout.addView(title);
+        layout.addView(subtitle);
+        layout.addView(etPassword);
+        layout.addView(etNewPin);
+        layout.addView(etConfirmPin);
+        layout.addView(btnReset);
+        d2.setContentView(layout);
+        d2.show();
     }
 
     // ── Member code input ──
@@ -218,11 +351,21 @@ public class PaymentsFragment extends Fragment {
             public void onTextChanged(CharSequence s, int st, int b, int c) {}
             public void afterTextChanged(Editable s) {
                 String code = s.toString().trim().toUpperCase();
+                // Also try M-prefixed zero-padded format (e.g. "1" -> "M001", "12" -> "M012")
+                String codeAlt = "";
+                try {
+                    int num = Integer.parseInt(code);
+                    codeAlt = String.format(java.util.Locale.getDefault(), "M%03d", num);
+                } catch (NumberFormatException ignored) {}
+
                 Customer found = null;
                 for (Customer cu : customers) {
-                    if (cu.memberCode != null && cu.memberCode.toUpperCase().equals(code)) {
-                        found = cu;
-                        break;
+                    if (cu.memberCode != null) {
+                        String stored = cu.memberCode.toUpperCase();
+                        if (stored.equals(code) || (!codeAlt.isEmpty() && stored.equals(codeAlt))) {
+                            found = cu;
+                            break;
+                        }
                     }
                 }
                 if (found != null) {
