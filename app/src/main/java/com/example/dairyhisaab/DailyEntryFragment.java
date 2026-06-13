@@ -68,6 +68,16 @@ public class DailyEntryFragment extends Fragment {
 
         btnMorning.setOnClickListener(v -> selectShift("Subah"));
         btnEvening.setOnClickListener(v -> selectShift("Shaam"));
+        etDate.addTextChangedListener(new TextWatcher() {
+    @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+    @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+    @Override public void afterTextChanged(Editable s) {
+        String txt = s.toString().trim();
+        if (txt.length() == 10 && getActivity() != null) {
+            populateEntryList(LayoutInflater.from(getContext()));
+        }
+    }
+});
 
         loadRealMembers();
         populateEntryList(inflater);
