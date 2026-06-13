@@ -6,4 +6,6 @@ public class Payment {
     public double amount;
     public String date;
     public String note;
+    public String paidBySign;      // Base64 signature image
+    public String receivedBySign;  // Base64 signature image
 }
