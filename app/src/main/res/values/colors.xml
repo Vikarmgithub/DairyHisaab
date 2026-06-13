@@ -12,6 +12,7 @@
     <color name="text_dark">#212121</color>
     <color name="text_muted">#78909C</color>
     <color name="text_hint_blue">#A5D6A7</color>
+    <color name="dairy_green_primary">#2E7D32</color>
 
     <color name="accent_green">#2E7D32</color>
     <color name="accent_green_bg">#E8F5E9</color>
