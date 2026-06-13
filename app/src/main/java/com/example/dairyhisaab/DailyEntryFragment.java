@@ -684,7 +684,7 @@ public class DailyEntryFragment extends Fragment {
                     getContext().getSystemService(android.content.Context.PRINT_SERVICE);
             if (printManager != null) {
                 FilePrintAdapter adapter =
-                        new FilePrintAdapter(getContext(), file, "Slip_" + c.name);
+                        new FilePrintAdapter(getContext(), file, "DailySlip");
                 printManager.print(
                         "DailySlip_" + etDate.getText().toString(),
                         adapter,
