@@ -76,6 +76,31 @@ public class DailyEntryFragment extends Fragment {
         btnPrevDay.setOnClickListener(v -> changeDate(-1));
         btnNextDay.setOnClickListener(v -> changeDate(1));
 
+        etDate.setOnClickListener(v -> {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                Date current = sdf.parse(etDate.getText().toString().trim());
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.setTime(current);
+                int year = cal.get(java.util.Calendar.YEAR);
+                int month = cal.get(java.util.Calendar.MONTH);
+                int day = cal.get(java.util.Calendar.DAY_OF_MONTH);
+
+                android.app.DatePickerDialog dialog = new android.app.DatePickerDialog(getContext(),
+                    (picker, y, m, d) -> {
+                        java.util.Calendar newCal = java.util.Calendar.getInstance();
+                        newCal.set(y, m, d);
+                        etDate.setText(sdf.format(newCal.getTime()));
+                        if (getActivity() != null) {
+                            populateEntryList(LayoutInflater.from(getContext()));
+                        }
+                    }, year, month, day);
+                dialog.show();
+            } catch (Exception e) {
+                Toast.makeText(getContext(), "Date error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
         loadRealMembers();
         populateEntryList(inflater);
 
@@ -431,4 +456,4 @@ public class DailyEntryFragment extends Fragment {
         }
         Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
     }
-            }
+                                 }
