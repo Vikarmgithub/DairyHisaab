@@ -17,19 +17,17 @@
             android:paddingBottom="20dp"
             android:paddingHorizontal="20dp"
             android:background="@drawable/bg_gradient_header">
-            
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🗄 Backup &amp; Restore"
+                android:text="🗄 Backup &amp; Settings"
                 android:textColor="#FFFFFF"
                 android:textSize="22sp"
                 android:textStyle="bold" />
-                
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="App delete hone ya phone change hone par data bachane ke liye backup karo"
+                android:text="Backup, restore aur security settings"
                 android:textColor="#90CAF9"
                 android:textSize="12sp"
                 android:layout_marginTop="2dp" />
@@ -41,6 +39,44 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- PIN SECURITY CARD -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_section_card"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp"
+                android:elevation="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔐 Delete PIN Security"
+                    android:textSize="15sp"
+                    android:textColor="@color/dairy_blue_primary"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Koi bhi data delete karne se pehle yeh PIN maanga jaata hai."
+                    android:textSize="12sp"
+                    android:textColor="@color/text_muted"
+                    android:layout_marginBottom="12dp"/>
+
+                <Button
+                    android:id="@+id/btnChangePin"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="🔑 PIN Change / Set Karo"
+                    android:backgroundTint="#1a3c5e"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"/>
+            </LinearLayout>
+
+            <!-- CLOUD BACKUP CARD -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -100,6 +136,7 @@
                     android:visibility="gone"/>
             </LinearLayout>
 
+            <!-- LOCAL BACKUP CARD -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -139,6 +176,7 @@
                     style="?android:attr/borderlessButtonStyle"/>
             </LinearLayout>
 
+            <!-- DATA STATUS CARD -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
