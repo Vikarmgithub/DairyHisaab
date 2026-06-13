@@ -67,6 +67,7 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         initViews();
+        toggleMode();
         setupClickListeners();
         setupGoogleSignIn();
     }
