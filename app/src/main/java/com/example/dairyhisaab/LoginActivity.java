@@ -36,8 +36,6 @@ public class LoginActivity extends AppCompatActivity {
     private TextView tvToggle;
     private boolean isLoginMode = true;
 
-
-
     private ProgressBar progressBar;
 
     @Override
@@ -63,14 +61,14 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        progressBar     = findViewById(R.id.progressBar);
-        btnLogin        = findViewById(R.id.btnLogin);
-        btnRegister     = findViewById(R.id.btnRegister);
-        etEmail         = findViewById(R.id.etEmail);
-        etPassword = findViewById(R.id.etPassword);
-        etName = findViewById(R.id.etName);
-        layoutName = findViewById(R.id.layoutName);
-        tvToggle        = findViewById(R.id.tvToggle);
+        progressBar = findViewById(R.id.progressBar);
+        btnLogin    = findViewById(R.id.btnLogin);
+        btnRegister = findViewById(R.id.btnRegister);
+        etEmail     = findViewById(R.id.etEmail);
+        etPassword  = findViewById(R.id.etPassword);
+        etName      = findViewById(R.id.etName);
+        layoutName  = findViewById(R.id.layoutName);
+        tvToggle    = findViewById(R.id.tvToggle);
     }
 
     private void setupClickListeners() {
@@ -103,16 +101,87 @@ public class LoginActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         if (mAuth.getCurrentUser().isEmailVerified()) {
                             FirebaseManager.getInstance().saveLoginInfo(this);
-                            doAutoBackup();
+
+                            // ✅ BUG FIX: Pehle check karo local data hai ya nahi
+                            // Agar local data khaali hai → cloud se restore karo
+                            // Agar local data hai → cloud pe backup karo
+                            // PEHLE sirf doAutoBackup() tha jo khaali data cloud pe
+                            // upload kar deta tha aur real backup delete ho jaata tha!
+                            checkAndSyncData();
+
                             goToMain();
                         } else {
                             mAuth.signOut();
-                            Toast.makeText(this, "Pehle email verify karo! Inbox check karo.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(this,
+                                "Pehle email verify karo! Inbox check karo.",
+                                Toast.LENGTH_LONG).show();
                         }
                     } else {
-                        Toast.makeText(this, "Login failed: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(this,
+                            "Login failed: " + task.getException().getMessage(),
+                            Toast.LENGTH_LONG).show();
                     }
                 });
+    }
+
+    /**
+     * ✅ SMART SYNC:
+     * - Local data khaali hai → cloud se silently restore karo (naya device / fresh install)
+     * - Local data hai → cloud pe backup karo (data surakshit rakho)
+     *
+     * Yahi original bug tha: hamesha backup hota tha chahe data khaala ho ya nahi.
+     * Isse cloud backup empty data se overwrite ho jaata tha.
+     */
+    private void checkAndSyncData() {
+        DairyDataManager dm = DairyDataManager.getInstance(this);
+        boolean hasLocalData = !dm.getCustomers().isEmpty()
+                            || !dm.getEntries().isEmpty()
+                            || !dm.getPayments().isEmpty();
+
+        if (hasLocalData) {
+            // Local data hai → cloud pe backup karo
+            doAutoBackup(dm);
+        } else {
+            // Local data khaali hai → cloud se restore karo silently
+            doAutoRestore(dm);
+        }
+    }
+
+    /**
+     * Cloud pe backup karo (tabhi jab local data ho)
+     */
+    private void doAutoBackup(DairyDataManager dm) {
+        FirebaseManager.getInstance().uploadAllData(dm,
+            new FirebaseManager.UploadCallback() {
+                public void onSuccess() {}
+                public void onFailure(String e) {}
+            }
+        );
+    }
+
+    /**
+     * Cloud se auto-restore karo (naya device / fresh install pe)
+     * Admin approval ki zaroorat nahi kyunki user apne hi account se login hai
+     */
+    private void doAutoRestore(DairyDataManager dm) {
+        FirebaseManager.getInstance().downloadAllData(
+            new FirebaseManager.DownloadCallback() {
+                @Override
+                public void onSuccess(java.util.Map<String, Object> data) {
+                    // Cloud se data aaya → restore karo
+                    FirebaseManager.getInstance().restoreData(dm, data);
+                    runOnUiThread(() ->
+                        Toast.makeText(LoginActivity.this,
+                            "✅ Cloud se data restore ho gaya!",
+                            Toast.LENGTH_LONG).show()
+                    );
+                }
+                @Override
+                public void onFailure(String error) {
+                    // Cloud pe koi backup nahi — fresh start, koi problem nahi
+                }
+            }
+        );
     }
 
     private void registerWithEmail() {
@@ -143,10 +212,14 @@ public class LoginActivity extends AppCompatActivity {
                         mAuth.getCurrentUser().sendEmailVerification()
                                 .addOnCompleteListener(emailTask -> {
                                     mAuth.signOut();
-                                    Toast.makeText(this, "Account ban gaya! " + email + " pe verification link bheja gaya.", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(this,
+                                        "Account ban gaya! " + email + " pe verification link bheja gaya.",
+                                        Toast.LENGTH_LONG).show();
                                 });
                     } else {
-                        Toast.makeText(this, "Registration failed: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(this,
+                            "Registration failed: " + task.getException().getMessage(),
+                            Toast.LENGTH_LONG).show();
                     }
                 });
     }
@@ -172,18 +245,6 @@ public class LoginActivity extends AppCompatActivity {
             btnRegister.setVisibility(View.VISIBLE);
             tvToggle.setText("Pehle se account hai? Login karo");
         }
-    }
-
-    // ─── PHONE OTP ───
-
-    private void doAutoBackup() {
-        FirebaseManager.getInstance().uploadAllData(
-            DairyDataManager.getInstance(this),
-            new FirebaseManager.UploadCallback() {
-                public void onSuccess() {}
-                public void onFailure(String e) {}
-            }
-        );
     }
 
     private void goToMain() {
