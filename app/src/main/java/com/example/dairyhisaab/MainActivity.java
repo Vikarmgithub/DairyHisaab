@@ -6,12 +6,6 @@ import android.os.Bundle;
 import android.widget.Button;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
-import androidx.work.Constraints;
-import androidx.work.ExistingPeriodicWorkPolicy;
-import androidx.work.NetworkType;
-import androidx.work.PeriodicWorkRequest;
-import androidx.work.WorkManager;
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -55,61 +49,10 @@ public class MainActivity extends AppCompatActivity {
         tab_backup.setOnClickListener(v ->    viewPager.setCurrentItem(6, true));
 
         updateTabStyles(tab_dashboard);
-        scheduleAutoBackup();
+        // AUTO BACKUP AUR WORKMANAGER HATA DIYE — ab DairyDataManager khud backup karta hai
     }
 
-    /**
-     * App background mein jaaye (home button, dusra app) — turant backup
-     */
-    @Override
-    protected void onStop() {
-        super.onStop();
-        triggerImmediateBackup();
-    }
-
-    /**
-     * Background thread pe dono backup chalao — UI block na ho
-     */
-    private void triggerImmediateBackup() {
-        new Thread(() -> {
-            // 1. Local file backup — seedha, fast
-            LocalBackupHelper.saveLocalBackup(getApplicationContext());
-
-            // 2. Firebase backup — network ke saath
-            if (FirebaseManager.getInstance().isLoggedIn()) {
-                FirebaseManager.getInstance().uploadAllData(
-                    DairyDataManager.getInstance(getApplicationContext()),
-                    new FirebaseManager.UploadCallback() {
-                        public void onSuccess() {}
-                        public void onFailure(String e) {}
-                    }
-                );
-            }
-        }).start();
-    }
-
-    /**
-     * WorkManager — har 6 ghante mein safety net backup
-     * (network available ho tabhi)
-     */
-    private void scheduleAutoBackup() {
-        if (!FirebaseManager.getInstance().isLoggedIn()) return;
-
-        Constraints constraints = new Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build();
-
-        PeriodicWorkRequest backupRequest = new PeriodicWorkRequest.Builder(
-                AutoBackupWorker.class,
-                6, TimeUnit.HOURS)
-                .setConstraints(constraints)
-                .build();
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-                "DairyAutoBackup",
-                ExistingPeriodicWorkPolicy.KEEP,
-                backupRequest);
-    }
+    // onStop() bhi hata diya — app close pe backup band
 
     private void updateTabStyles(Button activeTab) {
         for (Button tab : allTabs) {
