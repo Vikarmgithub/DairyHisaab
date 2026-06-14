@@ -2,6 +2,9 @@ package com.example.dairyhisaab;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
@@ -13,6 +16,8 @@ import java.util.Locale;
 
 public class DairyDataManager {
 
+    private static final String TAG = "DairyDataManager";
+
     private static DairyDataManager instance;
     private final SharedPreferences prefs;
     private final Gson gson = new Gson();
@@ -22,6 +27,13 @@ public class DairyDataManager {
     private static final String KEY_PAYMENTS     = "dairy_payments";
     private static final String KEY_RATE_HISTORY = "dairy_rateHistory";
     private static final String KEY_PIN          = "dairy_delete_pin";
+
+    // Agar 2 second ke andar kai baar save hua to sirf 1 baar backup hoga
+    private final Handler backupHandler = new Handler(Looper.getMainLooper());
+    private Runnable backupRunnable;
+
+    // Restore ke waqt backup loop rokne ke liye
+    private boolean isRestoring = false;
 
     private DairyDataManager(Context context) {
         prefs = context.getApplicationContext()
@@ -34,19 +46,37 @@ public class DairyDataManager {
     }
 
     // ── PIN ──
-    public boolean hasPin() {
-        return prefs.contains(KEY_PIN);
-    }
-    public void savePin(String pin) {
-        prefs.edit().putString(KEY_PIN, pin).apply();
-    }
+    public boolean hasPin() { return prefs.contains(KEY_PIN); }
+    public void savePin(String pin) { prefs.edit().putString(KEY_PIN, pin).apply(); }
     public boolean verifyPin(String pin) {
         return pin != null && pin.equals(prefs.getString(KEY_PIN, ""));
+    }
+
+    // ── Restore flag ──
+    public void setRestoring(boolean restoring) {
+        this.isRestoring = restoring;
+    }
+
+    // ── Auto cloud backup (debounced 2 sec) ──
+    private void triggerCloudBackup() {
+        if (isRestoring) return;
+        if (!FirebaseManager.getInstance().isLoggedIn()) return;
+
+        if (backupRunnable != null) backupHandler.removeCallbacks(backupRunnable);
+        backupRunnable = () ->
+            FirebaseManager.getInstance().uploadAllData(this,
+                new FirebaseManager.UploadCallback() {
+                    public void onSuccess() { Log.d(TAG, "Auto backup done"); }
+                    public void onFailure(String e) { Log.e(TAG, "Auto backup failed: " + e); }
+                }
+            );
+        backupHandler.postDelayed(backupRunnable, 2000);
     }
 
     // ── Save / Load helpers ──
     private <T> void save(String key, List<T> list) {
         prefs.edit().putString(key, gson.toJson(list)).apply();
+        triggerCloudBackup(); // Har save ke baad backup
     }
     private <T> List<T> load(String key, Type type) {
         String json = prefs.getString(key, null);
