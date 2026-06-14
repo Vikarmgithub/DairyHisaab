@@ -21,6 +21,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.EmailAuthProvider;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -67,6 +71,9 @@ public class BackupFragment extends Fragment {
 
     // ── PIN Change Dialog ──
     private void showChangePinDialog() {
+        // oldPinVerified = true hoga jab purana PIN sahi dala ya password se verify hua
+        final boolean[] oldPinVerified = {!dm.hasPin()}; // PIN nahi hai to verify ki zaroorat nahi
+
         Dialog d = new Dialog(getContext());
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);
         LinearLayout layout = new LinearLayout(getContext());
@@ -74,6 +81,7 @@ public class BackupFragment extends Fragment {
         layout.setPadding(56, 56, 56, 56);
         layout.setBackgroundColor(Color.WHITE);
 
+        // Title
         TextView title = new TextView(getContext());
         title.setText("🔐 PIN Change Karo");
         title.setTextSize(17);
@@ -81,64 +89,111 @@ public class BackupFragment extends Fragment {
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         title.setPadding(0, 0, 0, 6);
 
+        // Subtitle
         TextView sub = new TextView(getContext());
         sub.setText("Pehle purana PIN daalo, phir naya set karo.");
         sub.setTextSize(12);
         sub.setTextColor(0xFF9e7b5a);
-        sub.setPadding(0, 0, 0, 24);
+        sub.setPadding(0, 0, 0, 20);
 
+        // Purana PIN field
         EditText etOld = new EditText(getContext());
         etOld.setHint(dm.hasPin() ? "Purana PIN" : "PIN abhi set nahi hai — koi bhi daalo");
         etOld.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
                 android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
         etOld.setPadding(20, 14, 20, 14);
         etOld.setBackgroundColor(0xFFF4F7FC);
-
         LinearLayout.LayoutParams lp1 = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp1.setMargins(0, 0, 0, 14);
+        lp1.setMargins(0, 0, 0, 8);
         etOld.setLayoutParams(lp1);
 
+        // ✅ "PIN bhool gaye?" link — sirf tab dikhe jab PIN set ho aur Firebase login ho
+        TextView tvForgotPin = new TextView(getContext());
+        tvForgotPin.setText("🔑 PIN bhool gaye? Account password se verify karo");
+        tvForgotPin.setTextSize(12);
+        tvForgotPin.setTextColor(0xFF1565C0);
+        tvForgotPin.setPadding(4, 0, 4, 0);
+        LinearLayout.LayoutParams lpForgot = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lpForgot.setMargins(0, 0, 0, 20);
+        tvForgotPin.setLayoutParams(lpForgot);
+
+        // Sirf tab dikhao jab PIN set ho aur Firebase login ho
+        tvForgotPin.setVisibility(dm.hasPin() && firebaseManager.isLoggedIn()
+                ? View.VISIBLE : View.GONE);
+
+        // Verified badge — jab password se verify ho jaye to dikhega
+        TextView tvVerifiedBadge = new TextView(getContext());
+        tvVerifiedBadge.setText("✅ Password se verify ho gaya! Ab naya PIN daalo.");
+        tvVerifiedBadge.setTextSize(12);
+        tvVerifiedBadge.setTextColor(0xFF2E7D32);
+        tvVerifiedBadge.setBackgroundColor(0xFFE8F5E9);
+        tvVerifiedBadge.setPadding(16, 10, 16, 10);
+        LinearLayout.LayoutParams lpBadge = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lpBadge.setMargins(0, 0, 0, 16);
+        tvVerifiedBadge.setLayoutParams(lpBadge);
+        tvVerifiedBadge.setVisibility(View.GONE); // pehle hidden
+
+        // Naya PIN
         EditText etNew = new EditText(getContext());
         etNew.setHint("Naya PIN (4-6 digit)");
         etNew.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
                 android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
         etNew.setPadding(20, 14, 20, 14);
         etNew.setBackgroundColor(0xFFF4F7FC);
-
         LinearLayout.LayoutParams lp2 = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp2.setMargins(0, 0, 0, 14);
         etNew.setLayoutParams(lp2);
 
+        // Naya PIN confirm
         EditText etConfirm = new EditText(getContext());
         etConfirm.setHint("Naya PIN dobara daalo");
         etConfirm.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
                 android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
         etConfirm.setPadding(20, 14, 20, 14);
         etConfirm.setBackgroundColor(0xFFF4F7FC);
-
         LinearLayout.LayoutParams lp3 = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp3.setMargins(0, 0, 0, 24);
         etConfirm.setLayoutParams(lp3);
 
+        // Save button
         Button btnSave = new Button(getContext());
         btnSave.setText("✅ PIN SAVE KARO");
         btnSave.setBackgroundColor(0xFF1a3c5e);
         btnSave.setTextColor(Color.WHITE);
 
+        // ── "PIN bhool gaye?" click → password verify dialog ──
+        tvForgotPin.setOnClickListener(v -> showPasswordVerifyDialog(verified -> {
+            if (verified) {
+                oldPinVerified[0] = true;
+                // Purana PIN field disable karo, badge dikhao
+                etOld.setText("✓ verified");
+                etOld.setEnabled(false);
+                etOld.setBackgroundColor(0xFFE8F5E9);
+                tvForgotPin.setVisibility(View.GONE);
+                tvVerifiedBadge.setVisibility(View.VISIBLE);
+            }
+        }));
+
+        // ── Save button click ──
         btnSave.setOnClickListener(v -> {
             String oldPin = etOld.getText().toString().trim();
             String newPin = etNew.getText().toString().trim();
             String confirmPin = etConfirm.getText().toString().trim();
 
-            // Agar PIN pehle se set hai toh verify karo
-            if (dm.hasPin() && !dm.verifyPin(oldPin)) {
-                Toast.makeText(getContext(), "❌ Purana PIN galat hai!", Toast.LENGTH_SHORT).show();
-                etOld.setText("");
-                return;
+            // Purana PIN check — sirf tab jab password se verify nahi hua
+            if (!oldPinVerified[0]) {
+                if (dm.hasPin() && !dm.verifyPin(oldPin)) {
+                    Toast.makeText(getContext(), "❌ Purana PIN galat hai!", Toast.LENGTH_SHORT).show();
+                    etOld.setText("");
+                    return;
+                }
             }
+
             if (newPin.length() < 4) {
                 Toast.makeText(getContext(), "Naya PIN kam se kam 4 digit ka chahiye!", Toast.LENGTH_SHORT).show();
                 return;
@@ -156,11 +211,95 @@ public class BackupFragment extends Fragment {
         layout.addView(title);
         layout.addView(sub);
         layout.addView(etOld);
+        layout.addView(tvForgotPin);
+        layout.addView(tvVerifiedBadge);
         layout.addView(etNew);
         layout.addView(etConfirm);
         layout.addView(btnSave);
         d.setContentView(layout);
         d.show();
+    }
+
+    // ── Firebase Password Verify Dialog ──
+    interface VerifyCallback { void onResult(boolean verified); }
+
+    private void showPasswordVerifyDialog(VerifyCallback callback) {
+        Dialog pd = new Dialog(getContext());
+        pd.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(56, 56, 56, 56);
+        layout.setBackgroundColor(Color.WHITE);
+
+        TextView title = new TextView(getContext());
+        title.setText("🔑 Account Password Se Verify Karo");
+        title.setTextSize(15);
+        title.setTextColor(0xFF1a3c5e);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setPadding(0, 0, 0, 8);
+
+        TextView sub = new TextView(getContext());
+        sub.setText("Apna Firebase account password daalo:\n" + firebaseManager.getUserEmail());
+        sub.setTextSize(12);
+        sub.setTextColor(0xFF666666);
+        sub.setPadding(0, 0, 0, 20);
+
+        EditText etPassword = new EditText(getContext());
+        etPassword.setHint("Account Password");
+        etPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        etPassword.setPadding(20, 14, 20, 14);
+        etPassword.setBackgroundColor(0xFFF4F7FC);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(0, 0, 0, 20);
+        etPassword.setLayoutParams(lp);
+
+        Button btnVerify = new Button(getContext());
+        btnVerify.setText("🔓 VERIFY KARO");
+        btnVerify.setBackgroundColor(0xFF1565C0);
+        btnVerify.setTextColor(Color.WHITE);
+
+        btnVerify.setOnClickListener(v -> {
+            String password = etPassword.getText().toString().trim();
+            if (password.isEmpty()) {
+                Toast.makeText(getContext(), "Password daalo", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            btnVerify.setEnabled(false);
+            btnVerify.setText("Verify ho raha hai...");
+
+            // Firebase re-authentication
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user == null || user.getEmail() == null) {
+                Toast.makeText(getContext(), "Login nahi hai!", Toast.LENGTH_SHORT).show();
+                pd.dismiss();
+                callback.onResult(false);
+                return;
+            }
+
+            AuthCredential credential = EmailAuthProvider.getCredential(user.getEmail(), password);
+            user.reauthenticate(credential)
+                .addOnSuccessListener(unused -> {
+                    pd.dismiss();
+                    callback.onResult(true);
+                })
+                .addOnFailureListener(e -> {
+                    btnVerify.setEnabled(true);
+                    btnVerify.setText("🔓 VERIFY KARO");
+                    etPassword.setText("");
+                    Toast.makeText(getContext(), "❌ Galat password! Dobara try karo.", Toast.LENGTH_SHORT).show();
+                    callback.onResult(false);
+                });
+        });
+
+        layout.addView(title);
+        layout.addView(sub);
+        layout.addView(etPassword);
+        layout.addView(btnVerify);
+        pd.setContentView(layout);
+        pd.show();
     }
 
     private void doFirebaseBackup() {
@@ -173,16 +312,14 @@ public class BackupFragment extends Fragment {
         pd.setCancelable(false);
         pd.show();
         firebaseManager.uploadAllData(dm, new FirebaseManager.UploadCallback() {
-            @Override
-            public void onSuccess() {
+            @Override public void onSuccess() {
                 requireActivity().runOnUiThread(() -> {
                     pd.dismiss();
                     Toast.makeText(getContext(), "✅ Cloud Backup Successful!", Toast.LENGTH_LONG).show();
                     refreshAccountStatus(getView());
                 });
             }
-            @Override
-            public void onFailure(String error) {
+            @Override public void onFailure(String error) {
                 requireActivity().runOnUiThread(() -> {
                     pd.dismiss();
                     Toast.makeText(getContext(), "❌ Backup failed!\n" + error, Toast.LENGTH_LONG).show();
@@ -245,7 +382,8 @@ public class BackupFragment extends Fragment {
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_RESTORE_FILE && resultCode == android.app.Activity.RESULT_OK && data != null && data.getData() != null) {
+        if (requestCode == REQUEST_RESTORE_FILE && resultCode == android.app.Activity.RESULT_OK
+                && data != null && data.getData() != null) {
             confirmAndRestoreFromUri(data.getData());
         }
     }
@@ -290,9 +428,9 @@ public class BackupFragment extends Fragment {
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
         if (!root.has("app") || !root.get("app").getAsString().equals("DairyHisaab"))
             throw new Exception("Valid DairyHisaab backup nahi hai!");
-        if (root.has("customers")) dm.saveCustomers(gson.fromJson(root.get("customers"), new com.google.gson.reflect.TypeToken<List<Customer>>(){}.getType()));
-        if (root.has("entries")) dm.saveEntries(gson.fromJson(root.get("entries"), new com.google.gson.reflect.TypeToken<List<MilkEntry>>(){}.getType()));
-        if (root.has("payments")) dm.savePayments(gson.fromJson(root.get("payments"), new com.google.gson.reflect.TypeToken<List<Payment>>(){}.getType()));
+        if (root.has("customers"))   dm.saveCustomers(gson.fromJson(root.get("customers"),   new com.google.gson.reflect.TypeToken<List<Customer>>(){}.getType()));
+        if (root.has("entries"))     dm.saveEntries(gson.fromJson(root.get("entries"),       new com.google.gson.reflect.TypeToken<List<MilkEntry>>(){}.getType()));
+        if (root.has("payments"))    dm.savePayments(gson.fromJson(root.get("payments"),     new com.google.gson.reflect.TypeToken<List<Payment>>(){}.getType()));
         if (root.has("rateHistory")) dm.saveRateHistory(gson.fromJson(root.get("rateHistory"), new com.google.gson.reflect.TypeToken<List<RateEntry>>(){}.getType()));
     }
 
