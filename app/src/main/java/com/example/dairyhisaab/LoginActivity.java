@@ -9,33 +9,23 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.FirebaseException;
-import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.auth.UserProfileChangeRequest;
 
 public class LoginActivity extends AppCompatActivity {
-
-    private static final int RC_SIGN_IN = 9001;
 
     private GoogleSignInClient mGoogleSignInClient;
     private FirebaseAuth mAuth;
 
     private Button btnLogin, btnRegister;
     private EditText etEmail, etPassword, etName;
-    private android.view.View layoutName;
+    private View layoutName;
     private TextView tvToggle;
     private boolean isLoginMode = true;
-
     private ProgressBar progressBar;
 
     @Override
@@ -85,8 +75,6 @@ public class LoginActivity extends AppCompatActivity {
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
     }
 
-    // ─── EMAIL / PASSWORD ───
-
     private void loginWithEmail() {
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
@@ -101,105 +89,53 @@ public class LoginActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         if (mAuth.getCurrentUser().isEmailVerified()) {
                             FirebaseManager.getInstance().saveLoginInfo(this);
-
-                            // ✅ BUG FIX: Pehle check karo local data hai ya nahi
-                            // Agar local data khaali hai → cloud se restore karo
-                            // Agar local data hai → cloud pe backup karo
-                            // PEHLE sirf doAutoBackup() tha jo khaali data cloud pe
-                            // upload kar deta tha aur real backup delete ho jaata tha!
-                            checkAndSyncData();
-
+                            autoRestoreIfEmpty(); // Sirf restore — backup nahi
                             goToMain();
                         } else {
                             mAuth.signOut();
-                            Toast.makeText(this,
-                                "Pehle email verify karo! Inbox check karo.",
-                                Toast.LENGTH_LONG).show();
+                            Toast.makeText(this, "Pehle email verify karo! Inbox check karo.", Toast.LENGTH_LONG).show();
                         }
                     } else {
-                        Toast.makeText(this,
-                            "Login failed: " + task.getException().getMessage(),
-                            Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "Login failed: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
     }
 
-    /**
-     * ✅ SMART SYNC:
-     * - Local data khaali hai → cloud se silently restore karo (naya device / fresh install)
-     * - Local data hai → cloud pe backup karo (data surakshit rakho)
-     *
-     * Yahi original bug tha: hamesha backup hota tha chahe data khaala ho ya nahi.
-     * Isse cloud backup empty data se overwrite ho jaata tha.
-     */
-    private void checkAndSyncData() {
+    // Login pe sirf restore — agar local data khaali ho to cloud se le aao
+    // Backup ab sirf data save hone pe hoga (DairyDataManager handle karta hai)
+    private void autoRestoreIfEmpty() {
         DairyDataManager dm = DairyDataManager.getInstance(this);
         boolean hasLocalData = !dm.getCustomers().isEmpty()
                             || !dm.getEntries().isEmpty()
                             || !dm.getPayments().isEmpty();
+        if (hasLocalData) return; // Data hai, kuch nahi karna
 
-        if (hasLocalData) {
-            // Local data hai → cloud pe backup karo
-            doAutoBackup(dm);
-        } else {
-            // Local data khaali hai → cloud se restore karo silently
-            doAutoRestore(dm);
-        }
-    }
-
-    /**
-     * Cloud pe backup karo (tabhi jab local data ho)
-     */
-    private void doAutoBackup(DairyDataManager dm) {
-        FirebaseManager.getInstance().uploadAllData(dm,
-            new FirebaseManager.UploadCallback() {
-                public void onSuccess() {}
-                public void onFailure(String e) {}
+        // Khaali hai — cloud se silently restore karo
+        FirebaseManager.getInstance().downloadAllData(new FirebaseManager.DownloadCallback() {
+            @Override
+            public void onSuccess(java.util.Map<String, Object> data) {
+                dm.setRestoring(true);
+                FirebaseManager.getInstance().restoreData(dm, data);
+                dm.setRestoring(false);
+                runOnUiThread(() ->
+                    Toast.makeText(LoginActivity.this,
+                        "☁️ Cloud se data restore ho gaya!", Toast.LENGTH_LONG).show()
+                );
             }
-        );
-    }
-
-    /**
-     * Cloud se auto-restore karo (naya device / fresh install pe)
-     * Admin approval ki zaroorat nahi kyunki user apne hi account se login hai
-     */
-    private void doAutoRestore(DairyDataManager dm) {
-        FirebaseManager.getInstance().downloadAllData(
-            new FirebaseManager.DownloadCallback() {
-                @Override
-                public void onSuccess(java.util.Map<String, Object> data) {
-                    // Cloud se data aaya → restore karo
-                    FirebaseManager.getInstance().restoreData(dm, data);
-                    runOnUiThread(() ->
-                        Toast.makeText(LoginActivity.this,
-                            "✅ Cloud se data restore ho gaya!",
-                            Toast.LENGTH_LONG).show()
-                    );
-                }
-                @Override
-                public void onFailure(String error) {
-                    // Cloud pe koi backup nahi — fresh start, koi problem nahi
-                }
+            @Override
+            public void onFailure(String error) {
+                // Cloud pe koi backup nahi — fresh start
             }
-        );
+        });
     }
 
     private void registerWithEmail() {
         String name = etName.getText().toString().trim();
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
-        if (name.isEmpty()) {
-            Toast.makeText(this, "Naam daalo", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Email aur password daalo", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (password.length() < 6) {
-            Toast.makeText(this, "Password kam se kam 6 characters ka hona chahiye", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (name.isEmpty()) { Toast.makeText(this, "Naam daalo", Toast.LENGTH_SHORT).show(); return; }
+        if (email.isEmpty() || password.isEmpty()) { Toast.makeText(this, "Email aur password daalo", Toast.LENGTH_SHORT).show(); return; }
+        if (password.length() < 6) { Toast.makeText(this, "Password kam se kam 6 characters ka hona chahiye", Toast.LENGTH_SHORT).show(); return; }
         showLoading(true);
         String finalName = name;
         mAuth.createUserWithEmailAndPassword(email, password)
@@ -212,14 +148,10 @@ public class LoginActivity extends AppCompatActivity {
                         mAuth.getCurrentUser().sendEmailVerification()
                                 .addOnCompleteListener(emailTask -> {
                                     mAuth.signOut();
-                                    Toast.makeText(this,
-                                        "Account ban gaya! " + email + " pe verification link bheja gaya.",
-                                        Toast.LENGTH_LONG).show();
+                                    Toast.makeText(this, "Account ban gaya! " + email + " pe verification link bheja gaya.", Toast.LENGTH_LONG).show();
                                 });
                     } else {
-                        Toast.makeText(this,
-                            "Registration failed: " + task.getException().getMessage(),
-                            Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "Registration failed: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
     }
@@ -247,12 +179,6 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    private void goToMain() {
-        startActivity(new Intent(this, MainActivity.class));
-        finish();
-    }
-
-    private void showLoading(boolean show) {
-        progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
-    }
+    private void goToMain() { startActivity(new Intent(this, MainActivity.class)); finish(); }
+    private void showLoading(boolean show) { progressBar.setVisibility(show ? View.VISIBLE : View.GONE); }
 }
