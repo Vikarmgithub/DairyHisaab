@@ -61,7 +61,6 @@ public class BackupFragment extends Fragment {
         view.findViewById(R.id.btnDriveBackup).setOnClickListener(v -> doFirebaseBackup());
         view.findViewById(R.id.btnDriveRestore).setOnClickListener(v -> doFirebaseRestore());
         view.findViewById(R.id.btnRestore).setOnClickListener(v -> pickRestoreFile());
-        view.findViewById(R.id.btnSignOut).setOnClickListener(v -> signOut());
         view.findViewById(R.id.btnChangePin).setOnClickListener(v -> showChangePinDialog());
         view.findViewById(R.id.btnLogout).setOnClickListener(v -> doLogout());
 
@@ -333,18 +332,6 @@ public class BackupFragment extends Fragment {
         AdminRestoreHelper.requestRestore(getActivity(), dm, firebaseManager, () -> refreshStatus(getView()));
     }
 
-    private void signOut() {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Sign Out")
-                .setMessage("Account se sign out karna chahte hain?")
-                .setPositiveButton("Haan", (d, w) -> {
-                    firebaseManager.signOut();
-                    refreshAccountStatus(getView());
-                    Toast.makeText(getContext(), "Sign out ho gaye.", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Cancel", null).show();
-    }
-
     private void doLogout() {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Logout")
@@ -366,10 +353,8 @@ public class BackupFragment extends Fragment {
             tvAccount.setText("✅ " + firebaseManager.getUserEmail() +
                     "\n👤 " + firebaseManager.getUserName() +
                     "\n☁️ Cloud backup active");
-            view.findViewById(R.id.btnSignOut).setVisibility(View.VISIBLE);
         } else {
             tvAccount.setText("❌ Login nahi hai\nCloud backup ke liye login karo");
-            view.findViewById(R.id.btnSignOut).setVisibility(View.GONE);
         }
     }
 
