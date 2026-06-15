@@ -9,6 +9,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <!-- HEADER -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -20,7 +21,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🗄 Backup &amp; Settings"
+                android:text="⚙️ Settings"
                 android:textColor="#FFFFFF"
                 android:textSize="22sp"
                 android:textStyle="bold" />
@@ -33,178 +34,124 @@
                 android:layout_marginTop="2dp" />
         </LinearLayout>
 
+        <!-- OPTIONS LIST -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- PIN SECURITY CARD -->
-            <LinearLayout
+            <!-- Account Status -->
+            <TextView
+                android:id="@+id/tvGoogleAccount"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:text="❌ Login nahi hai"
+                android:textSize="13sp"
+                android:textColor="@color/text_muted"
                 android:background="@drawable/bg_section_card"
-                android:padding="16dp"
-                android:layout_marginBottom="16dp"
-                android:elevation="4dp">
+                android:padding="14dp"
+                android:layout_marginBottom="10dp"
+                android:elevation="2dp"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🔐 Delete PIN Security"
-                    android:textSize="15sp"
-                    android:textColor="@color/dairy_blue_primary"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="6dp"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Koi bhi data delete karne se pehle yeh PIN maanga jaata hai."
-                    android:textSize="12sp"
-                    android:textColor="@color/text_muted"
-                    android:layout_marginBottom="12dp"/>
-
-                <Button
-                    android:id="@+id/btnChangePin"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:text="🔑 PIN Change / Set Karo"
-                    android:backgroundTint="#1a3c5e"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"/>
-            </LinearLayout>
-
-            <!-- CLOUD BACKUP CARD -->
-            <LinearLayout
+            <!-- 1. PIN Change -->
+            <Button
+                android:id="@+id/btnChangePin"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/bg_section_card"
-                android:padding="16dp"
-                android:layout_marginBottom="16dp"
-                android:elevation="4dp">
+                android:layout_height="52dp"
+                android:text="🔑 PIN Change / Set Karo"
+                android:backgroundTint="#1a3c5e"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="10dp"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="☁️ Cloud Backup (Firebase)"
-                    android:textSize="15sp"
-                    android:textColor="@color/dairy_blue_primary"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp"/>
-
-                <TextView
-                    android:id="@+id/tvGoogleAccount"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="❌ Login nahi hai"
-                    android:textSize="13sp"
-                    android:textColor="@color/text_muted"
-                    android:layout_marginBottom="12dp"
-                    android:paddingStart="2dp"/>
-
-                <Button
-                    android:id="@+id/btnDriveBackup"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:text="☁️ Cloud Backup Karo"
-                    android:backgroundTint="@color/dairy_blue_primary"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp"/>
-
-                <Button
-                    android:id="@+id/btnDriveRestore"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:text="⬇️ Cloud Se Restore Karo"
-                    android:backgroundTint="@color/dairy_blue_light"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp"/>
-
-                <Button
-                    android:id="@+id/btnSignOut"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:text="🚪 Sign Out"
-                    android:backgroundTint="#78909C"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:visibility="gone"/>
-            </LinearLayout>
-
-            <!-- LOCAL BACKUP CARD -->
-            <LinearLayout
+            <!-- 2. Cloud Backup -->
+            <Button
+                android:id="@+id/btnDriveBackup"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/bg_section_card"
-                android:padding="16dp"
-                android:layout_marginBottom="16dp"
-                android:elevation="4dp">
+                android:layout_height="52dp"
+                android:text="☁️ Cloud Backup Karo"
+                android:backgroundTint="@color/dairy_blue_primary"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="10dp"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📁 Local Backup"
-                    android:textSize="15sp"
-                    android:textColor="@color/dairy_blue_primary"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="12dp"/>
-
-                <Button
-                    android:id="@+id/btnBackup"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:text="💾 Local Backup Karo"
-                    android:backgroundTint="@color/dairy_blue_dark"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp"/>
-
-                <Button
-                    android:id="@+id/btnRestore"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:text="📂 File Se Restore Karo"
-                    android:backgroundTint="@color/input_bg_blue"
-                    android:textColor="@color/dairy_blue_primary"
-                    android:textStyle="bold"
-                    style="?android:attr/borderlessButtonStyle"/>
-            </LinearLayout>
-
-            <!-- DATA STATUS CARD -->
-            <LinearLayout
+            <!-- 3. Cloud Restore -->
+            <Button
+                android:id="@+id/btnDriveRestore"
                 android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="⬇️ Cloud Se Restore Karo"
+                android:backgroundTint="@color/dairy_blue_light"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="10dp"/>
+
+            <!-- 4. Local Backup -->
+            <Button
+                android:id="@+id/btnBackup"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="💾 Local Backup Karo"
+                android:backgroundTint="@color/dairy_blue_dark"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="10dp"/>
+
+            <!-- 5. File Restore -->
+            <Button
+                android:id="@+id/btnRestore"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="📂 File Se Restore Karo"
+                android:backgroundTint="#455A64"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="10dp"/>
+
+            <!-- 6. Sign Out (only visible when logged in) -->
+            <Button
+                android:id="@+id/btnSignOut"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="🔓 Cloud Account Sign Out"
+                android:backgroundTint="#78909C"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone"/>
+
+            <!-- 7. Logout (sabse niche) -->
+            <Button
+                android:id="@+id/btnLogout"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="🚪 Logout"
+                android:backgroundTint="#C62828"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="15sp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Data Status - bottom right info -->
+            <TextView
+                android:id="@+id/tvDataStatus"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/bg_section_card"
-                android:padding="16dp"
-                android:elevation="4dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📊 Current Data Status"
-                    android:textSize="15sp"
-                    android:textColor="@color/text_dark"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp"/>
-
-                <TextView
-                    android:id="@+id/tvDataStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Loading..."
-                    android:textSize="13sp"
-                    android:textColor="#334155"
-                    android:fontFamily="monospace"
-                    android:background="#F8FAFC"
-                    android:padding="10dp"/>
-            </LinearLayout>
+                android:layout_gravity="end"
+                android:text="Loading..."
+                android:textSize="11sp"
+                android:textColor="#9E9E9E"
+                android:fontFamily="monospace"
+                android:gravity="end"
+                android:layout_marginBottom="8dp"/>
 
         </LinearLayout>
     </LinearLayout>
