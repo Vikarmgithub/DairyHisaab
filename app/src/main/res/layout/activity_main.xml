@@ -119,7 +119,7 @@
                 android:id="@+id/tab_backup"
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"
-                android:text="Backup"
+                android:text="Settings"
                 android:textSize="12sp"
                 android:textStyle="bold"
                 android:background="@drawable/bg_input_field"
