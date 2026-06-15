@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F4F7FC">
+    android:background="#F9F9F6">
 
     <!-- GREEN GRADIENT HEADER -->
     <LinearLayout
@@ -28,7 +28,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Loading rates..."
-            android:textColor="#C8E6C9"
+            android:textColor="#90C4E8"
             android:textSize="12sp"
             android:layout_marginTop="2dp" />
 
@@ -98,7 +98,7 @@
                 android:layout_weight="1"
                 android:text="🌅 Subah"
                 android:gravity="center"
-                android:textColor="#1B5E20"
+                android:textColor="#1A3A5C"
                 android:background="@color/white"
                 android:textStyle="bold"
                 android:textSize="12sp"
@@ -169,7 +169,7 @@
                 android:textSize="12sp"
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"
-                android:background="#1B5E20"
+                android:background="#1A3A5C"
                 android:clickable="true"
                 android:focusable="true"/>
         </LinearLayout>
@@ -215,8 +215,8 @@
                 android:gravity="center"
                 android:textSize="14sp"
                 android:textStyle="bold"
-                android:textColor="#2E7D32"
-                android:background="#E8F5E9"/>
+                android:textColor="#2E6DA4"
+                android:background="#D0E8F5"/>
 
             <Button
                 android:id="@+id/btnQuickSave"
@@ -225,7 +225,7 @@
                 android:text="✔"
                 android:textSize="18sp"
                 android:textColor="#FFFFFF"
-                android:backgroundTint="#2E7D32"
+                android:backgroundTint="#2E6DA4"
                 android:layout_marginStart="6dp"
                 android:padding="0dp"/>
         </LinearLayout>
@@ -236,7 +236,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="#E8F5E9"
+        android:background="#D0E8F5"
         android:paddingHorizontal="12dp"
         android:paddingVertical="7dp">
 
@@ -244,7 +244,7 @@
             android:layout_width="42dp"
             android:layout_height="wrap_content"
             android:text="Code"
-            android:textColor="#1B5E20"
+            android:textColor="#1A3A5C"
             android:textStyle="bold"
             android:textSize="10sp"/>
 
@@ -253,7 +253,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="2"
             android:text="Member"
-            android:textColor="#1B5E20"
+            android:textColor="#1A3A5C"
             android:textStyle="bold"
             android:textSize="10sp"/>
 
@@ -262,7 +262,7 @@
             android:layout_height="wrap_content"
             android:text="Milk"
             android:gravity="center"
-            android:textColor="#1B5E20"
+            android:textColor="#1A3A5C"
             android:textStyle="bold"
             android:textSize="10sp"/>
 
@@ -271,7 +271,7 @@
             android:layout_height="wrap_content"
             android:text="Fat"
             android:gravity="center"
-            android:textColor="#1B5E20"
+            android:textColor="#1A3A5C"
             android:textStyle="bold"
             android:textSize="10sp"/>
 
@@ -280,7 +280,7 @@
             android:layout_height="wrap_content"
             android:text="Rate"
             android:gravity="center"
-            android:textColor="#1B5E20"
+            android:textColor="#1A3A5C"
             android:textStyle="bold"
             android:textSize="10sp"/>
 
@@ -298,7 +298,7 @@
             android:layout_height="wrap_content"
             android:text="Net Amt"
             android:gravity="end"
-            android:textColor="#1B5E20"
+            android:textColor="#1A3A5C"
             android:textStyle="bold"
             android:textSize="10sp"/>
 
@@ -331,7 +331,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="#1B5E20"
+        android:background="#1A3A5C"
         android:paddingHorizontal="16dp"
         android:paddingVertical="10dp"
         android:gravity="center_vertical">
@@ -351,7 +351,7 @@
             android:layout_width="wrap_content"
             android:layout_height="36dp"
             android:text="🖨 Print Slip"
-            android:textColor="#1B5E20"
+            android:textColor="#1A3A5C"
             android:backgroundTint="#FFFFFF"
             android:textSize="12sp"
             android:padding="8dp"/>

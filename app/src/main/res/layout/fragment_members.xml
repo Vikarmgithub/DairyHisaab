@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F4F7FC">
+    android:background="#F9F9F6">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -38,7 +38,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:text="➕ JODNE KE LIYE MENU KHOLO"
-                android:backgroundTint="@color/dairy_blue_light"
+                android:backgroundTint="#2E6DA4"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold"
                 android:layout_marginBottom="12dp"/>
@@ -179,7 +179,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
                     android:text="SAVE MEMBER"
-                    android:backgroundTint="@color/dairy_blue_primary"
+                    android:backgroundTint="#1A3A5C"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"/>
             </LinearLayout>
@@ -236,7 +236,7 @@
                     android:layout_marginHorizontal="2dp"
                     android:text="📊 EXCEL"
                     android:textSize="12sp"
-                    android:backgroundTint="@color/accent_green"
+                    android:backgroundTint="#1A3A5C"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"/>
 
@@ -248,7 +248,7 @@
                     android:layout_marginStart="4dp"
                     android:text="🖨 PRINT"
                     android:textSize="12sp"
-                    android:backgroundTint="@color/dairy_blue_primary"
+                    android:backgroundTint="#1A3A5C"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"/>
             </LinearLayout>

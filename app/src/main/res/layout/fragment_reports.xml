@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F4F7FC">
+    android:background="#F9F9F6">
 
     <!-- Top Header Area (Premium Gradient - Login Hui Dairy Ka Naam Yahan Dikhega) -->
     <LinearLayout
@@ -193,7 +193,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:text="🔍 Data Load Karein"
-                android:backgroundTint="@color/dairy_blue_primary"
+                android:backgroundTint="#1A3A5C"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold"
                 android:textSize="13sp"/>
@@ -262,7 +262,7 @@
                     android:layout_height="40dp"
                     android:layout_weight="1"
                     android:text="📊 Excel"
-                    android:backgroundTint="@color/accent_green"
+                    android:backgroundTint="#1A3A5C"
                     android:textColor="#FFFFFF"
                     android:textSize="11sp"
                     android:textStyle="bold"

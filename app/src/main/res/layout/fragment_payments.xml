@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F4F7FC">
+    android:background="#F9F9F6">
 
     <!-- HEADER -->
     <LinearLayout
@@ -251,7 +251,7 @@
                     android:text="SAVE PAYMENT"
                     android:textColor="@color/white"
                     android:textStyle="bold"
-                    android:backgroundTint="@color/dairy_blue_primary"/>
+                    android:backgroundTint="#1A3A5C"/>
 
             </LinearLayout>
         </LinearLayout>
@@ -347,7 +347,7 @@
                     android:text="DHUNDO"
                     android:textColor="@color/white"
                     android:textStyle="bold"
-                    android:backgroundTint="@color/dairy_blue_primary"/>
+                    android:backgroundTint="#1A3A5C"/>
 
             </LinearLayout>
 
