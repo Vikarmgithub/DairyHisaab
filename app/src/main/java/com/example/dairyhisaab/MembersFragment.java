@@ -105,7 +105,7 @@ public class MembersFragment extends Fragment {
             @Override public void afterTextChanged(Editable s) {
                 String ifsc = s.toString().trim().toUpperCase();
                 if (ifsc.length() == 11) {
-                    runnable = () -> fetchBankNameFromIfsc(ifsc);
+                    runnable = () -> fetchBankNameForField(ifsc, etBankName);
                     handler.postDelayed(runnable, 600);
                 } else {
                     etBankName.setHint("Bank Name");
@@ -154,44 +154,6 @@ public class MembersFragment extends Fragment {
             c = d[c][p[i % 8][rev.charAt(i) - '0']];
         }
         return c == 0;
-    }
-
-    // ── IFSC → Bank Name (Razorpay free API) ──
-    private void fetchBankNameFromIfsc(String ifsc) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Handler mainHandler = new Handler(Looper.getMainLooper());
-        executor.execute(() -> {
-            try {
-                URL url = new URL("https://ifsc.razorpay.com/" + ifsc);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(5000);
-                int code = conn.getResponseCode();
-                if (code == 200) {
-                    BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                    StringBuilder sb = new StringBuilder();
-                    String line;
-                    while ((line = br.readLine()) != null) sb.append(line);
-                    br.close();
-                    JSONObject json = new JSONObject(sb.toString());
-                    String bankName = json.optString("BANK", "");
-                    String branch = json.optString("BRANCH", "");
-                    mainHandler.post(() -> {
-                        if (!bankName.isEmpty()) {
-                            etBankName.setText(bankName);
-                            etBankName.setHint(branch.isEmpty() ? bankName : bankName + " – " + branch);
-                            Toast.makeText(getContext(), "🏦 " + bankName + (branch.isEmpty() ? "" : ", " + branch), Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } else {
-                    mainHandler.post(() -> Toast.makeText(getContext(), "❌ IFSC valid nahi hai!", Toast.LENGTH_SHORT).show());
-                }
-                conn.disconnect();
-            } catch (Exception e) {
-                mainHandler.post(() -> Toast.makeText(getContext(), "⚠️ Bank info fetch nahi hua", Toast.LENGTH_SHORT).show());
-            }
-        });
     }
 
     private void saveCustomerToDb() {
@@ -393,47 +355,60 @@ public class MembersFragment extends Fragment {
         }
     }
 
-    // 💡 यहाँ आपका असली पॉपअप है, जिसमें बस एक "✏️ EDIT" बटन नीचे जोड़ दिया गया है
+
     private void showMemberDetailsPopup(Customer c) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setTitle("👤 Member Full Details");
         StringBuilder details = new StringBuilder();
-        details.append("🔹 Code: ").append(c.memberCode).append("\n\n")
-               .append("🔹 Name: ").append(c.name).append("\n\n")
-               .append("🔹 Father/Husband: ").append(c.fatherHusband).append("\n\n")
-               .append("🔹 Mobile: ").append(c.phone).append("\n\n")
-               .append("🆔 Unique ID: ").append(c.uniqueId).append("\n\n")
-               .append("🔹 Aadhaar: ").append(c.aadhar).append("\n\n")
-               .append("🔹 Jan Aadhaar: ").append(c.janAadhar).append("\n\n")
-               .append("🏦 Bank Name: ").append(c.bankName).append("\n")
-               .append("🏦 Account No: ").append(c.bankAcc).append("\n")
-               .append("🏦 IFSC Code: ").append(c.ifsc);
+        details.append("🔹 Code: ").append(c.memberCode != null ? c.memberCode : "-").append("\n\n")
+               .append("🔹 Name: ").append(c.name != null ? c.name : "-").append("\n\n")
+               .append("🔹 Father/Husband: ").append(c.fatherHusband != null ? c.fatherHusband : "-").append("\n\n")
+               .append("🔹 Mobile: ").append(c.phone != null ? c.phone : "-").append("\n\n")
+               .append("🆔 Unique ID: ").append(c.uniqueId != null ? c.uniqueId : "-").append("\n\n")
+               .append("🔹 Aadhaar: ").append(c.aadhar != null && !c.aadhar.isEmpty() ? "XXXX-XXXX-" + c.aadhar.substring(Math.max(0, c.aadhar.length()-4)) : "-").append("\n\n")
+               .append("🔹 Jan Aadhaar: ").append(c.janAadhar != null ? c.janAadhar : "-").append("\n\n")
+               .append("🏦 Bank Name: ").append(c.bankName != null ? c.bankName : "-").append("\n")
+               .append("🏦 Account No: ").append(c.bankAcc != null ? c.bankAcc : "-").append("\n")
+               .append("🏦 IFSC Code: ").append(c.ifsc != null ? c.ifsc : "-");
         builder.setMessage(details.toString());
-        
-        // ✏️ यह रहा एडिट बटन जो आपके असली पॉपअप के साथ जुड़ गया है
-        builder.setPositiveButton("✏️ EDIT", (dialog, which) -> showEditMemberDialog(c));
-        builder.setNegativeButton("CLOSE", null);
+        builder.setPositiveButton("✏️ Edit", (dialog, which) -> showEditMemberDialog(c));
+        builder.setNegativeButton("🗑️ Delete", (dialog, which) -> confirmDeleteMember(c));
+        builder.setNeutralButton("Close", null);
         builder.create().show();
     }
-    // 💡 इस सही मेथड को अपनी Java फाइल में पुराने वाले से बदल दें भाई
+
+    private void confirmDeleteMember(Customer c) {
+        new AlertDialog.Builder(requireContext())
+            .setTitle("🗑️ Member Delete Karo")
+            .setMessage("\"" + c.name + "\" ko permanently delete karna chahte hain?\n\nYeh action undo nahi hogi!")
+            .setPositiveButton("Haan, Delete Karo", (d, w) -> {
+                List<Customer> list = dm.getCustomers();
+                list.removeIf(cust -> cust.id != null && cust.id.equals(c.id));
+                dm.saveCustomers(list);
+                Toast.makeText(getContext(), "🗑️ " + c.name + " delete ho gaya!", Toast.LENGTH_SHORT).show();
+                loadAndDisplayMembers();
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
     private void showEditMemberDialog(Customer c) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_edit_member, null);
         builder.setView(dialogView);
 
-        EditText etEditCode = dialogView.findViewById(R.id.etEditCode);
-        EditText etEditName = dialogView.findViewById(R.id.etEditName);
-        EditText etEditFather = dialogView.findViewById(R.id.etEditFather);
-        EditText etEditPhone = dialogView.findViewById(R.id.etEditPhone);
+        EditText etEditCode     = dialogView.findViewById(R.id.etEditCode);
+        EditText etEditName     = dialogView.findViewById(R.id.etEditName);
+        EditText etEditFather   = dialogView.findViewById(R.id.etEditFather);
+        EditText etEditPhone    = dialogView.findViewById(R.id.etEditPhone);
         EditText etEditUniqueId = dialogView.findViewById(R.id.etEditUniqueId);
-        EditText etEditAadhar = dialogView.findViewById(R.id.etEditAadhar);
-        EditText etEditJanAadhar = dialogView.findViewById(R.id.etEditJanAadhar);
+        EditText etEditAadhar   = dialogView.findViewById(R.id.etEditAadhar);
+        EditText etEditJanAadhar= dialogView.findViewById(R.id.etEditJanAadhar);
         EditText etEditBankName = dialogView.findViewById(R.id.etEditBankName);
-        EditText etEditBankAcc = dialogView.findViewById(R.id.etEditBankAcc);
-        EditText etEditIfsc = dialogView.findViewById(R.id.etEditIfsc);
-        Button btnSaveEdit = dialogView.findViewById(R.id.btnSaveEdit);
+        EditText etEditBankAcc  = dialogView.findViewById(R.id.etEditBankAcc);
+        EditText etEditIfsc     = dialogView.findViewById(R.id.etEditIfsc);
+        Button btnSaveEdit      = dialogView.findViewById(R.id.btnSaveEdit);
 
-        // पुरानी वैल्यू सेट करना
         etEditCode.setText(c.memberCode);
         etEditName.setText(c.name);
         etEditFather.setText(c.fatherHusband);
@@ -445,50 +420,165 @@ public class MembersFragment extends Fragment {
         etEditBankAcc.setText(c.bankAcc);
         etEditIfsc.setText(c.ifsc);
 
+        // IFSC auto-fill edit dialog mein bhi
+        etEditIfsc.addTextChangedListener(new TextWatcher() {
+            private final Handler handler = new Handler(Looper.getMainLooper());
+            private Runnable runnable;
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { handler.removeCallbacks(runnable); }
+            @Override public void afterTextChanged(Editable s) {
+                String ifsc = s.toString().trim().toUpperCase();
+                if (ifsc.length() == 11) {
+                    runnable = () -> fetchBankNameForField(ifsc, etEditBankName);
+                    handler.postDelayed(runnable, 600);
+                }
+            }
+        });
+
         AlertDialog dialog = builder.create();
-        
+
         btnSaveEdit.setOnClickListener(v -> {
-            // 💡 1. मुख्य डेटाबेस से कस्टमर्स की असली लिस्ट लोड करें
-            List<Customer> allCustomers = dm.getCustomers();
-            
-            // 💡 2. लिस्ट में इस कस्टमर को उसकी यूनिक आईडी (id) से ढूँढें
-            int targetIndex = -1;
-            for (int i = 0; i < allCustomers.size(); i++) {
-                if (allCustomers.get(i).id != null && allCustomers.get(i).id.equals(c.id)) {
-                    targetIndex = i;
-                    break;
+            String code      = etEditCode.getText().toString().trim();
+            String name      = etEditName.getText().toString().trim();
+            String father    = etEditFather.getText().toString().trim();
+            String phone     = etEditPhone.getText().toString().trim();
+            String aadhar    = etEditAadhar.getText().toString().trim();
+            String janAadhar = etEditJanAadhar.getText().toString().trim();
+            String uniqueId  = etEditUniqueId.getText().toString().trim();
+            String bankName  = etEditBankName.getText().toString().trim();
+            String bankAcc   = etEditBankAcc.getText().toString().trim();
+            String ifsc      = etEditIfsc.getText().toString().trim().toUpperCase();
+
+            if (code.isEmpty() || name.isEmpty() || uniqueId.isEmpty()) {
+                Toast.makeText(getContext(), "Code, Naam aur Unique ID zaroori hai!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (!aadhar.isEmpty()) {
+                if (!aadhar.matches("\\d{12}")) {
+                    Toast.makeText(getContext(), "❌ Aadhar exactly 12 digit hona chahiye!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (!isValidAadhar(aadhar)) {
+                    Toast.makeText(getContext(), "❌ Aadhar number valid nahi hai!", Toast.LENGTH_SHORT).show();
+                    return;
                 }
             }
 
-            // 💡 3. अगर कस्टमर मिल जाता है, तो उसकी सारी वैल्यूज को अपडेट करें
-            if (targetIndex != -1) {
-                Customer updatedCustomer = allCustomers.get(targetIndex);
-                updatedCustomer.memberCode = etEditCode.getText().toString().trim();
-                updatedCustomer.name = etEditName.getText().toString().trim();
-                updatedCustomer.fatherHusband = etEditFather.getText().toString().trim();
-                updatedCustomer.phone = etEditPhone.getText().toString().trim();
-                updatedCustomer.uniqueId = etEditUniqueId.getText().toString().trim();
-                updatedCustomer.aadhar = etEditAadhar.getText().toString().trim();
-                updatedCustomer.janAadhar = etEditJanAadhar.getText().toString().trim();
-                updatedCustomer.bankName = etEditBankName.getText().toString().trim();
-                updatedCustomer.bankAcc = etEditBankAcc.getText().toString().trim();
-                updatedCustomer.ifsc = etEditIfsc.getText().toString().trim();
+            List<Customer> allCustomers = dm.getCustomers();
+            boolean janAadharDup = false;
+            String janAadharDupName = "";
 
-                // 💡 4. अब इस अपडेटेड पूरी लिस्ट को डेटाबेस में पक्का सेव करें
-                dm.saveCustomers(allCustomers);
-                
-                Toast.makeText(getContext(), "✅ Details Updated Successfully!", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(getContext(), "⚠️ Error: Member nahi mila!", Toast.LENGTH_SHORT).show();
+            for (Customer ex : allCustomers) {
+                if (ex.id != null && ex.id.equals(c.id)) continue; // khud ko skip
+
+                if (ex.memberCode != null && ex.memberCode.equalsIgnoreCase(code)) {
+                    Toast.makeText(getContext(), "❌ Yeh Member Code pehle se bana hai! (" + ex.name + ")", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if (!aadhar.isEmpty() && ex.aadhar != null && ex.aadhar.equals(aadhar)) {
+                    Toast.makeText(getContext(), "❌ Yeh Aadhar pehle se registered hai! (" + ex.name + ")", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if (!phone.isEmpty() && ex.phone != null && ex.phone.equals(phone)) {
+                    Toast.makeText(getContext(), "❌ Yeh phone number pehle se registered hai! (" + ex.name + ")", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if (!uniqueId.isEmpty() && ex.uniqueId != null && ex.uniqueId.equalsIgnoreCase(uniqueId)) {
+                    Toast.makeText(getContext(), "❌ Yeh Unique ID pehle se registered hai! (" + ex.name + ")", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if (!bankAcc.isEmpty() && ex.bankAcc != null && ex.bankAcc.equals(bankAcc)) {
+                    Toast.makeText(getContext(), "❌ Yeh Bank Account pehle se registered hai! (" + ex.name + ")", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if (!janAadhar.isEmpty() && ex.janAadhar != null && ex.janAadhar.equals(janAadhar)) {
+                    janAadharDup = true;
+                    janAadharDupName = ex.name;
+                }
             }
-            
-            // लिस्ट रिफ्रेश करें और पॉपअप बंद करें
-            loadAndDisplayMembers();
-            dialog.dismiss();
+
+            if (janAadharDup) {
+                final String dupName = janAadharDupName;
+                final String fc=code, fn=name, ff=father, fp=phone, fa=aadhar;
+                final String fj=janAadhar, fu=uniqueId, fb=bankName, facc=bankAcc, fi=ifsc;
+                new AlertDialog.Builder(requireContext())
+                    .setTitle("⚠️ JanAadhar Duplicate Warning")
+                    .setMessage("Yeh JanAadhar \"" + dupName + "\" ke naam pe pehle se hai.\n\nPhir bhi save karein?")
+                    .setPositiveButton("Haan, Save Karo", (d2, w) ->
+                        doUpdateCustomer(c.id, fc, fn, ff, fp, fa, fj, fu, fb, facc, fi, allCustomers, dialog))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+                return;
+            }
+
+            doUpdateCustomer(c.id, code, name, father, phone, aadhar, janAadhar, uniqueId, bankName, bankAcc, ifsc, allCustomers, dialog);
         });
-        
+
         dialog.show();
     }
+
+    private void doUpdateCustomer(String customerId, String code, String name, String father,
+                                   String phone, String aadhar, String janAadhar, String uniqueId,
+                                   String bankName, String bankAcc, String ifsc,
+                                   List<Customer> allCustomers, AlertDialog dialog) {
+        for (Customer cust : allCustomers) {
+            if (cust.id != null && cust.id.equals(customerId)) {
+                cust.memberCode    = code;
+                cust.name          = name;
+                cust.fatherHusband = father;
+                cust.phone         = phone;
+                cust.aadhar        = aadhar;
+                cust.janAadhar     = janAadhar;
+                cust.uniqueId      = uniqueId;
+                cust.bankName      = bankName;
+                cust.bankAcc       = bankAcc;
+                cust.ifsc          = ifsc;
+                break;
+            }
+        }
+        dm.saveCustomers(allCustomers);
+        Toast.makeText(getContext(), "✅ " + name + " update ho gaya!", Toast.LENGTH_SHORT).show();
+        loadAndDisplayMembers();
+        dialog.dismiss();
+    }
+
+    // Generic IFSC fetch for any EditText field
+    private void fetchBankNameForField(String ifsc, EditText targetField) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+        executor.execute(() -> {
+            try {
+                URL url = new URL("https://ifsc.razorpay.com/" + ifsc);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+                if (conn.getResponseCode() == 200) {
+                    BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) sb.append(line);
+                    br.close();
+                    JSONObject json = new JSONObject(sb.toString());
+                    String bank = json.optString("BANK", "");
+                    String branch = json.optString("BRANCH", "");
+                    mainHandler.post(() -> {
+                        if (!bank.isEmpty()) {
+                            targetField.setText(bank);
+                            Toast.makeText(getContext(), "🏦 " + bank + (branch.isEmpty() ? "" : ", " + branch), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                } else {
+                    mainHandler.post(() -> Toast.makeText(getContext(), "❌ IFSC valid nahi hai!", Toast.LENGTH_SHORT).show());
+                }
+                conn.disconnect();
+            } catch (Exception e) {
+                mainHandler.post(() -> Toast.makeText(getContext(), "⚠️ Bank info fetch nahi hua", Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
 
 
 
