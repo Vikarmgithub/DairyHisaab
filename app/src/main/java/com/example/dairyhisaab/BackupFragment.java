@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -334,7 +335,101 @@ public class BackupFragment extends Fragment {
     }
 
     private void doFirebaseRestore() {
-        AdminRestoreHelper.requestRestore(getActivity(), dm, firebaseManager, () -> refreshStatus(getView()));
+        if (!firebaseManager.isLoggedIn()) {
+            startActivity(new Intent(getActivity(), LoginActivity.class));
+            return;
+        }
+
+        ProgressDialog pd = new ProgressDialog(getContext());
+        pd.setMessage("☁️ Backup dates fetch ho rahi hain...");
+        pd.setCancelable(false);
+        pd.show();
+
+        firebaseManager.getAvailableBackupDates(new FirebaseManager.AvailableDatesCallback() {
+            @Override
+            public void onSuccess(List<String> dates) {
+                if (getActivity() == null) return;
+                requireActivity().runOnUiThread(() -> {
+                    pd.dismiss();
+                    showDateChooserDialog(dates);
+                });
+            }
+            @Override
+            public void onFailure(String error) {
+                if (getActivity() == null) return;
+                requireActivity().runOnUiThread(() -> {
+                    pd.dismiss();
+                    Toast.makeText(getContext(), "❌ " + error, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void showDateChooserDialog(List<String> dates) {
+        // Dates ko user-friendly format mein dikhao
+        String[] displayDates = new String[dates.size()];
+        for (int i = 0; i < dates.size(); i++) {
+            String d = dates.get(i);
+            String friendly = DairyDataManager.formatDate(d);
+            if (i == 0) friendly += " (Sabse latest)";
+            displayDates[i] = "📅 " + friendly;
+        }
+
+        final int[] selectedIndex = {0};
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("📅 Kaunsi Date ka Restore Chahiye?")
+                .setSingleChoiceItems(displayDates, 0, (dialog, which) -> {
+                    selectedIndex[0] = which;
+                })
+                .setPositiveButton("Restore Karo", (d, w) -> {
+                    String chosenDate = dates.get(selectedIndex[0]);
+                    confirmAndRestoreFromCloud(chosenDate);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void confirmAndRestoreFromCloud(String date) {
+        String friendlyDate = DairyDataManager.formatDate(date);
+        new AlertDialog.Builder(requireContext())
+                .setTitle("⚠️ Confirm Restore")
+                .setMessage(friendlyDate + " ka backup restore karne se SAARA DATA replace ho jayega.\n\nSure hain?")
+                .setPositiveButton("Haan, Restore Karo", (d, w) -> doCloudRestoreForDate(date))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void doCloudRestoreForDate(String date) {
+        ProgressDialog pd = new ProgressDialog(getContext());
+        pd.setMessage("☁️ " + DairyDataManager.formatDate(date) + " ka data restore ho raha hai...");
+        pd.setCancelable(false);
+        pd.show();
+
+        firebaseManager.downloadDataForDate(date, new FirebaseManager.DownloadCallback() {
+            @Override
+            public void onSuccess(java.util.Map<String, Object> data) {
+                if (getActivity() == null) return;
+                requireActivity().runOnUiThread(() -> {
+                    dm.setRestoring(true);
+                    firebaseManager.restoreData(dm, data);
+                    dm.setRestoring(false);
+                    pd.dismiss();
+                    refreshStatus(getView());
+                    Toast.makeText(getContext(),
+                            "✅ " + DairyDataManager.formatDate(date) + " ka restore successful!",
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+            @Override
+            public void onFailure(String error) {
+                if (getActivity() == null) return;
+                requireActivity().runOnUiThread(() -> {
+                    pd.dismiss();
+                    Toast.makeText(getContext(), "❌ Restore failed: " + error, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
     }
 
     private void doLogout() {

@@ -5,18 +5,26 @@ import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import androidx.work.Constraints;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 public class DairyDataManager {
 
     private static final String TAG = "DairyDataManager";
+    private static final String BACKUP_WORK_NAME = "DairyAutoBackup";
 
     private static DairyDataManager instance;
     private final SharedPreferences prefs;
@@ -38,11 +46,49 @@ public class DairyDataManager {
     private DairyDataManager(Context context) {
         prefs = context.getApplicationContext()
                        .getSharedPreferences("dairy_hisaab", Context.MODE_PRIVATE);
+        // Raat 9 baje ka daily auto-backup schedule karo
+        scheduleDailyBackup(context.getApplicationContext());
     }
 
     public static synchronized DairyDataManager getInstance(Context context) {
         if (instance == null) instance = new DairyDataManager(context);
         return instance;
+    }
+
+    // ── Raat 9 baje daily WorkManager backup ──
+    private void scheduleDailyBackup(Context context) {
+        // Aaj raat 9 baje tak kitna waqt bacha hai?
+        Calendar now = Calendar.getInstance();
+        Calendar target = Calendar.getInstance();
+        target.set(Calendar.HOUR_OF_DAY, 21);
+        target.set(Calendar.MINUTE, 0);
+        target.set(Calendar.SECOND, 0);
+
+        // Agar 9 baj chuke hain to kal raat 9 baje schedule karo
+        if (now.after(target)) {
+            target.add(Calendar.DAY_OF_YEAR, 1);
+        }
+
+        long initialDelay = target.getTimeInMillis() - now.getTimeInMillis();
+
+        Constraints constraints = new Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build();
+
+        PeriodicWorkRequest backupRequest = new PeriodicWorkRequest.Builder(
+                AutoBackupWorker.class, 24, TimeUnit.HOURS)
+                .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
+                .setConstraints(constraints)
+                .build();
+
+        // KEEP: agar pehle se schedule hai to change mat karo
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                BACKUP_WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,
+                backupRequest
+        );
+
+        Log.d(TAG, "Daily backup scheduled at 9 PM");
     }
 
     // ── PIN ──
