@@ -63,6 +63,7 @@ public class BackupFragment extends Fragment {
         view.findViewById(R.id.btnRestore).setOnClickListener(v -> pickRestoreFile());
         view.findViewById(R.id.btnSignOut).setOnClickListener(v -> signOut());
         view.findViewById(R.id.btnChangePin).setOnClickListener(v -> showChangePinDialog());
+        view.findViewById(R.id.btnLogout).setOnClickListener(v -> doLogout());
 
         refreshStatus(view);
         refreshAccountStatus(view);
@@ -340,6 +341,20 @@ public class BackupFragment extends Fragment {
                     firebaseManager.signOut();
                     refreshAccountStatus(getView());
                     Toast.makeText(getContext(), "Sign out ho gaye.", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null).show();
+    }
+
+    private void doLogout() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Logout")
+                .setMessage("App se logout karna chahte hain?")
+                .setPositiveButton("Haan", (d, w) -> {
+                    firebaseManager.signOut();
+                    Intent intent = new Intent(getActivity(), LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    if (getActivity() != null) getActivity().finish();
                 })
                 .setNegativeButton("Cancel", null).show();
     }
