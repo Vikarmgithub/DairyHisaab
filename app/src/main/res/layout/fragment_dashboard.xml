@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F9F9F6">
+    android:background="#FFFFFF">
 
     <!-- Premium Blue Gradient Header -->
     <LinearLayout
@@ -125,7 +125,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="📅 Mahine Ka Hisaab"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/dairy_blue_primary"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp"/>

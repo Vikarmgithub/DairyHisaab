@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F9F9F6">
+    android:background="#FFFFFF">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -72,7 +72,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
                 android:text="☁️ Cloud Backup Karo"
-                android:backgroundTint="#1A3A5C"
+                android:backgroundTint="@color/dairy_blue_primary"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold"
                 android:textSize="14sp"
@@ -84,7 +84,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
                 android:text="⬇️ Cloud Se Restore Karo"
-                android:backgroundTint="#2E6DA4"
+                android:backgroundTint="@color/dairy_blue_light"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold"
                 android:textSize="14sp"

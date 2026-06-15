@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F9F9F6">
+    android:background="#FFFFFF">
 
     <!-- GREEN GRADIENT HEADER -->
     <LinearLayout
@@ -28,7 +28,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Loading rates..."
-            android:textColor="#90C4E8"
+            android:textColor="#C8E6C9"
             android:textSize="12sp"
             android:layout_marginTop="2dp" />
 
@@ -216,7 +216,7 @@
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="#2E6DA4"
-                android:background="#D0E8F5"/>
+                android:background="#EBF3FB"/>
 
             <Button
                 android:id="@+id/btnQuickSave"
@@ -236,7 +236,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="#D0E8F5"
+        android:background="#EBF3FB"
         android:paddingHorizontal="12dp"
         android:paddingVertical="7dp">
 
