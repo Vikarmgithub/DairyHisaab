@@ -114,18 +114,7 @@
                 android:textSize="14sp"
                 android:layout_marginBottom="10dp"/>
 
-            <!-- 6. Sign Out (only visible when logged in) -->
-            <Button
-                android:id="@+id/btnSignOut"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:text="🔓 Cloud Account Sign Out"
-                android:backgroundTint="#78909C"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:layout_marginBottom="10dp"
-                android:visibility="gone"/>
+
 
             <!-- 7. Logout (sabse niche) -->
             <Button
