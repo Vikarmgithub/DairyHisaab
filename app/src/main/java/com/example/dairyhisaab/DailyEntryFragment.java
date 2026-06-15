@@ -418,7 +418,9 @@ public class DailyEntryFragment extends Fragment {
         // ── Tap on row → Edit mode ──
         row.setClickable(true);
         row.setFocusable(true);
-        row.setOnClickListener(v -> enterEditMode(entry, c));
+        row.setOnClickListener(v -> 
+            BiometricHelper.authenticate(this, "✏️ Entry Edit Karo", () -> enterEditMode(entry, c))
+        );
 
         entryList.addView(row);
     }

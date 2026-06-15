@@ -57,6 +57,11 @@ public class BackupFragment extends Fragment {
         dm = DairyDataManager.getInstance(getContext());
         firebaseManager = FirebaseManager.getInstance();
 
+        // 🔐 Settings khulne pe biometric/PIN lock
+        BiometricHelper.authenticate(this, "🔐 Settings Access", () -> {
+            // Access granted - kuch alag karne ki zaroorat nahi, UI already visible hai
+        });
+
         view.findViewById(R.id.btnBackup).setOnClickListener(v -> doLocalBackup());
         view.findViewById(R.id.btnDriveBackup).setOnClickListener(v -> doFirebaseBackup());
         view.findViewById(R.id.btnDriveRestore).setOnClickListener(v -> doFirebaseRestore());

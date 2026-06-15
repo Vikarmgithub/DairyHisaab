@@ -49,9 +49,7 @@ public class PaymentsFragment extends Fragment {
         dm = DairyDataManager.getInstance(getContext());
         customers = dm.getCustomers();
 
-        if (!dm.hasPin()) {
-            showSetPinDialog();
-        }
+
 
         setupTabButtons(view);
         setupNewPaymentSection(view);
@@ -380,7 +378,7 @@ public class PaymentsFragment extends Fragment {
             btnDel.setBackgroundColor(0xFFbe123c);
             btnDel.setTextColor(Color.WHITE);
             btnDel.setOnClickListener(v ->
-                askPinThenDelete(() -> {
+                BiometricHelper.authenticate(this, "🗑️ Delete Confirm Karo", () -> {
                     List<Payment> all = dm.getPayments();
                     all.removeIf(x -> x.id.equals(fp.id));
                     dm.savePayments(all);
