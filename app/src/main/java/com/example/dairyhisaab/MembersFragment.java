@@ -9,8 +9,12 @@ import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.print.PrintAttributes;
 import android.print.PrintManager;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,10 +27,17 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.json.JSONObject;
 
 public class MembersFragment extends Fragment {
 
@@ -82,6 +93,25 @@ public class MembersFragment extends Fragment {
         });
 
         btnAdd.setOnClickListener(v -> saveCustomerToDb());
+
+        // IFSC type karo → bank name auto-fill
+        etIfsc.addTextChangedListener(new TextWatcher() {
+            private final Handler handler = new Handler(Looper.getMainLooper());
+            private Runnable runnable;
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                handler.removeCallbacks(runnable);
+            }
+            @Override public void afterTextChanged(Editable s) {
+                String ifsc = s.toString().trim().toUpperCase();
+                if (ifsc.length() == 11) {
+                    runnable = () -> fetchBankNameFromIfsc(ifsc);
+                    handler.postDelayed(runnable, 600);
+                } else {
+                    etBankName.setHint("Bank Name");
+                }
+            }
+        });
         
         // एक्सपोर्ट क्लिक्स (जैसा आपकी असली फाइल में था)
         btnPdf.setOnClickListener(v -> exportToPdf());
@@ -93,33 +123,182 @@ public class MembersFragment extends Fragment {
         return view;
     }
 
-    private void saveCustomerToDb() {
-        String code = etCode.getText().toString().trim();
-        String name = etName.getText().toString().trim();
-        String father = etFatherHusband.getText().toString().trim();
-        String phone = etPhone.getText().toString().trim();
-        String aadharNo = etAadhar.getText().toString().trim();
-        String janAadharNo = etJanAadhar.getText().toString().trim();
-        String uniqueIdNo = etUniqueId.getText().toString().trim();
-        String bank = etBankName.getText().toString().trim();
-        String acc = etBankAcc.getText().toString().trim();
-        String ifscCode = etIfsc.getText().toString().trim();
+    // ── Aadhar Verhoeff checksum validation ──
+    private boolean isValidAadhar(String aadhar) {
+        if (aadhar == null || !aadhar.matches("\\d{12}")) return false;
+        int[][] d = {
+            {0,1,2,3,4,5,6,7,8,9},
+            {1,2,3,4,0,6,7,8,9,5},
+            {2,3,4,0,1,7,8,9,5,6},
+            {3,4,0,1,2,8,9,5,6,7},
+            {4,0,1,2,3,9,5,6,7,8},
+            {5,9,8,7,6,0,4,3,2,1},
+            {6,5,9,8,7,1,0,4,3,2},
+            {7,6,5,9,8,2,1,0,4,3},
+            {8,7,6,5,9,3,2,1,0,4},
+            {9,8,7,6,5,4,3,2,1,0}
+        };
+        int[][] p = {
+            {0,1,2,3,4,5,6,7,8,9},
+            {1,5,7,6,2,8,3,0,9,4},
+            {5,8,0,3,7,9,6,1,4,2},
+            {8,9,1,6,0,4,3,5,2,7},
+            {9,4,5,3,1,2,6,8,7,0},
+            {4,2,8,6,5,7,3,9,0,1},
+            {2,7,9,3,8,0,6,4,1,5},
+            {7,0,4,6,9,1,3,2,5,8}
+        };
+        int c = 0;
+        String rev = new StringBuilder(aadhar).reverse().toString();
+        for (int i = 0; i < rev.length(); i++) {
+            c = d[c][p[i % 8][rev.charAt(i) - '0']];
+        }
+        return c == 0;
+    }
 
+    // ── IFSC → Bank Name (Razorpay free API) ──
+    private void fetchBankNameFromIfsc(String ifsc) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+        executor.execute(() -> {
+            try {
+                URL url = new URL("https://ifsc.razorpay.com/" + ifsc);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+                int code = conn.getResponseCode();
+                if (code == 200) {
+                    BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) sb.append(line);
+                    br.close();
+                    JSONObject json = new JSONObject(sb.toString());
+                    String bankName = json.optString("BANK", "");
+                    String branch = json.optString("BRANCH", "");
+                    mainHandler.post(() -> {
+                        if (!bankName.isEmpty()) {
+                            etBankName.setText(bankName);
+                            etBankName.setHint(branch.isEmpty() ? bankName : bankName + " – " + branch);
+                            Toast.makeText(getContext(), "🏦 " + bankName + (branch.isEmpty() ? "" : ", " + branch), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                } else {
+                    mainHandler.post(() -> Toast.makeText(getContext(), "❌ IFSC valid nahi hai!", Toast.LENGTH_SHORT).show());
+                }
+                conn.disconnect();
+            } catch (Exception e) {
+                mainHandler.post(() -> Toast.makeText(getContext(), "⚠️ Bank info fetch nahi hua", Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    private void saveCustomerToDb() {
+        String code       = etCode.getText().toString().trim();
+        String name       = etName.getText().toString().trim();
+        String father     = etFatherHusband.getText().toString().trim();
+        String phone      = etPhone.getText().toString().trim();
+        String aadharNo   = etAadhar.getText().toString().trim();
+        String janAadharNo= etJanAadhar.getText().toString().trim();
+        String uniqueIdNo = etUniqueId.getText().toString().trim();
+        String bank       = etBankName.getText().toString().trim();
+        String acc        = etBankAcc.getText().toString().trim();
+        String ifscCode   = etIfsc.getText().toString().trim().toUpperCase();
+
+        // ── Required fields ──
         if (code.isEmpty() || name.isEmpty() || uniqueIdNo.isEmpty()) {
             Toast.makeText(getContext(), "Code, Naam aur Unique ID daalna zaroori hai!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        List<Customer> currentList = dm.getCustomers();
-        for (Customer existing : currentList) {
-            if (existing.memberCode != null && existing.memberCode.equalsIgnoreCase(code)) {
-                Toast.makeText(getContext(), "⚠️ Yeh Member Code pehle se bana hai!", Toast.LENGTH_SHORT).show();
+        // ── Aadhar format + Verhoeff check ──
+        if (!aadharNo.isEmpty()) {
+            if (!aadharNo.matches("\\d{12}")) {
+                Toast.makeText(getContext(), "❌ Aadhar exactly 12 digit hona chahiye!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!isValidAadhar(aadharNo)) {
+                Toast.makeText(getContext(), "❌ Aadhar number valid nahi hai! Dobara check karo.", Toast.LENGTH_SHORT).show();
                 return;
             }
         }
 
+        // ── Duplicate checks ──
+        List<Customer> currentList = dm.getCustomers();
+        boolean janAadharDuplicate = false;
+
+        for (Customer ex : currentList) {
+            // Member code
+            if (ex.memberCode != null && ex.memberCode.equalsIgnoreCase(code)) {
+                Toast.makeText(getContext(), "⚠️ Yeh Member Code pehle se bana hai!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // Aadhar
+            if (!aadharNo.isEmpty() && ex.aadhar != null && ex.aadhar.equals(aadharNo)) {
+                Toast.makeText(getContext(), "❌ Yeh Aadhar number pehle se registered hai! (" + ex.name + ")", Toast.LENGTH_LONG).show();
+                return;
+            }
+            // Phone
+            if (!phone.isEmpty() && ex.phone != null && ex.phone.equals(phone)) {
+                Toast.makeText(getContext(), "❌ Yeh phone number pehle se registered hai! (" + ex.name + ")", Toast.LENGTH_LONG).show();
+                return;
+            }
+            // Unique ID
+            if (!uniqueIdNo.isEmpty() && ex.uniqueId != null && ex.uniqueId.equalsIgnoreCase(uniqueIdNo)) {
+                Toast.makeText(getContext(), "❌ Yeh Unique ID pehle se registered hai! (" + ex.name + ")", Toast.LENGTH_LONG).show();
+                return;
+            }
+            // Bank Account
+            if (!acc.isEmpty() && ex.bankAcc != null && ex.bankAcc.equals(acc)) {
+                Toast.makeText(getContext(), "❌ Yeh Bank Account pehle se registered hai! (" + ex.name + ")", Toast.LENGTH_LONG).show();
+                return;
+            }
+            // IFSC
+            if (!ifscCode.isEmpty() && ex.ifsc != null && ex.ifsc.equalsIgnoreCase(ifscCode) && !acc.isEmpty() && ex.bankAcc != null && ex.bankAcc.equals(acc)) {
+                // Already caught by bank account check above
+            }
+            // JanAadhar — duplicate allowed but warning
+            if (!janAadharNo.isEmpty() && ex.janAadhar != null && ex.janAadhar.equals(janAadharNo)) {
+                janAadharDuplicate = true;
+            }
+        }
+
+        // ── JanAadhar duplicate warning dialog ──
+        if (janAadharDuplicate) {
+            // Find existing member name for context
+            String existingName = "";
+            for (Customer ex : currentList) {
+                if (ex.janAadhar != null && ex.janAadhar.equals(janAadharNo)) {
+                    existingName = ex.name;
+                    break;
+                }
+            }
+            final String finalExistingName = existingName;
+            final String finalCode = code; final String finalName = name;
+            final String finalFather = father; final String finalPhone = phone;
+            final String finalAadhar = aadharNo; final String finalJan = janAadharNo;
+            final String finalUid = uniqueIdNo; final String finalBank = bank;
+            final String finalAcc = acc; final String finalIfsc = ifscCode;
+
+            new AlertDialog.Builder(requireContext())
+                .setTitle("⚠️ JanAadhar Duplicate Warning")
+                .setMessage("Yeh JanAadhar number pehle se \"" + finalExistingName + "\" ke naam pe registered hai.\n\nKya aap phir bhi save karna chahte hain?\n(Jan Aadhaar ek pariwar mein share hota hai, isliye allowed hai)")
+                .setPositiveButton("Haan, Save Karo", (d, w) -> doSaveCustomer(
+                    finalCode, finalName, finalFather, finalPhone,
+                    finalAadhar, finalJan, finalUid, finalBank, finalAcc, finalIfsc))
+                .setNegativeButton("Cancel", null)
+                .show();
+            return;
+        }
+
+        doSaveCustomer(code, name, father, phone, aadharNo, janAadharNo, uniqueIdNo, bank, acc, ifscCode);
+    }
+
+    private void doSaveCustomer(String code, String name, String father, String phone,
+                                 String aadharNo, String janAadharNo, String uniqueIdNo,
+                                 String bank, String acc, String ifscCode) {
         String generatedId = "cust_" + System.currentTimeMillis();
-        
         Customer newCustomer = new Customer();
         newCustomer.id = generatedId;
         newCustomer.memberCode = code;
@@ -128,16 +307,17 @@ public class MembersFragment extends Fragment {
         newCustomer.phone = phone;
         newCustomer.aadhar = aadharNo;
         newCustomer.janAadhar = janAadharNo;
-        newCustomer.uniqueId = uniqueIdNo; 
-        newCustomer.address = ""; 
+        newCustomer.uniqueId = uniqueIdNo;
+        newCustomer.address = "";
         newCustomer.bankName = bank;
         newCustomer.bankAcc = acc;
         newCustomer.ifsc = ifscCode;
 
+        List<Customer> currentList = dm.getCustomers();
         currentList.add(newCustomer);
         dm.saveCustomers(currentList);
 
-        Toast.makeText(getContext(), name + " successfully judd gaya!", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getContext(), "✅ " + name + " successfully judd gaya!", Toast.LENGTH_SHORT).show();
 
         layoutAddMemberForm.setVisibility(View.GONE);
         btnToggleForm.setText("➕ JODNE KE LIYE MENU KHOLO");
