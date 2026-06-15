@@ -111,12 +111,17 @@ public class LoginActivity extends AppCompatActivity {
         if (hasLocalData) return; // Data hai, kuch nahi karna
 
         // Khaali hai — cloud se silently restore karo
+        // setRestoring(true) pehle karo takи restore ke dauraan koi auto-backup na ho
+        dm.setRestoring(true);
         FirebaseManager.getInstance().downloadAllData(new FirebaseManager.DownloadCallback() {
             @Override
             public void onSuccess(java.util.Map<String, Object> data) {
-                dm.setRestoring(true);
                 FirebaseManager.getInstance().restoreData(dm, data);
-                dm.setRestoring(false);
+                // Thodi der baad restoring flag hatao — 3 sec delay taaki
+                // save operations complete ho jayein pehle
+                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                    dm.setRestoring(false);
+                }, 3000);
                 runOnUiThread(() ->
                     Toast.makeText(LoginActivity.this,
                         "☁️ Cloud se data restore ho gaya!", Toast.LENGTH_LONG).show()
@@ -125,6 +130,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onFailure(String error) {
                 // Cloud pe koi backup nahi — fresh start
+                dm.setRestoring(false);
             }
         });
     }
