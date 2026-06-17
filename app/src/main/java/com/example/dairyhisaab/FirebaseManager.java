@@ -4,6 +4,11 @@ import android.content.Context;
 import android.util.Log;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -13,6 +18,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -31,9 +37,14 @@ public class FirebaseManager {
     private final FirebaseAuth auth;
     private final Gson gson = new Gson();
 
+    // ── Realtime Database (Mithai app jaise device-wise backup) ──
+    private final DatabaseReference rtdbRef;
+    private static final String RTDB_ROOT = "dairy_backup";
+
     private FirebaseManager() {
-        db = FirebaseFirestore.getInstance();
+        db   = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
+        rtdbRef = FirebaseDatabase.getInstance().getReference(RTDB_ROOT);
     }
 
     public static synchronized FirebaseManager getInstance() {
@@ -219,5 +230,124 @@ public class FirebaseManager {
     public String getUserName() {
         FirebaseUser user = auth.getCurrentUser();
         return user != null && user.getDisplayName() != null ? user.getDisplayName() : "";
+    }
+
+    // =====================================================================
+    // 📱 REALTIME DATABASE BACKUP — Device ID ke naam se (Mithai app jaise)
+    // Structure: dairy_backup/{deviceId}/{date}/customers, entries, payments, rateHistory
+    // =====================================================================
+
+    public interface RtdbCallback {
+        void onSuccess(String message);
+        void onFailure(String error);
+    }
+
+    public void backupToRealtimeDB(DairyDataManager dm, String deviceId, RtdbCallback callback) {
+        if (dm.getCustomers().isEmpty() && dm.getEntries().isEmpty()) {
+            callback.onFailure("⚠️ Koi data nahi — Backup skip!");
+            return;
+        }
+
+        String dateKey    = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        String backupTime = new SimpleDateFormat("dd-MMM-yyyy HH:mm", Locale.getDefault()).format(new Date());
+
+        String customersJson   = gson.toJson(dm.getCustomers());
+        String entriesJson     = gson.toJson(dm.getEntries());
+        String paymentsJson    = gson.toJson(dm.getPayments());
+        String rateHistoryJson = gson.toJson(dm.getRateHistory());
+
+        DatabaseReference todayRef = rtdbRef.child(deviceId).child(dateKey);
+        todayRef.child("customers").setValue(customersJson);
+        todayRef.child("entries").setValue(entriesJson);
+        todayRef.child("payments").setValue(paymentsJson);
+        todayRef.child("rateHistory").setValue(rateHistoryJson);
+        todayRef.child("backupTime").setValue(backupTime)
+            .addOnSuccessListener(v -> {
+                // 10 din se purane delete karo
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                Calendar cal = Calendar.getInstance();
+                for (int i = 11; i <= 60; i++) {
+                    cal.setTime(new Date());
+                    cal.add(Calendar.DAY_OF_YEAR, -i);
+                    rtdbRef.child(deviceId).child(sdf.format(cal.getTime())).removeValue();
+                }
+                callback.onSuccess("✅ Realtime DB Backup ho gaya!\n📅 " + dateKey
+                    + "\n👥 " + dm.getCustomers().size() + " Members"
+                    + "\n📋 " + dm.getEntries().size() + " Entries");
+            })
+            .addOnFailureListener(e -> callback.onFailure("❌ Backup Failed: " + e.getMessage()));
+    }
+
+    public void listRealtimeBackupDates(String deviceId, RtdbCallback callback) {
+        rtdbRef.child(deviceId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                if (!snapshot.exists() || !snapshot.hasChildren()) {
+                    callback.onFailure("❌ Koi Realtime backup nahi mila!");
+                    return;
+                }
+                ArrayList<String> dates = new ArrayList<>();
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    if (child.getKey() != null) dates.add(child.getKey());
+                }
+                Collections.sort(dates, Collections.reverseOrder());
+                callback.onSuccess(String.join(",", dates));
+            }
+            @Override
+            public void onCancelled(DatabaseError error) {
+                callback.onFailure("❌ Firebase Error: " + error.getMessage());
+            }
+        });
+    }
+
+    public void restoreFromRealtimeDB(DairyDataManager dm, String deviceId,
+                                      String dateKey, RtdbCallback callback) {
+        rtdbRef.child(deviceId).child(dateKey).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                if (!snapshot.exists()) {
+                    callback.onFailure("❌ Is date ka backup nahi mila!");
+                    return;
+                }
+                try {
+                    String customersJson   = snapshot.child("customers").getValue(String.class);
+                    String entriesJson     = snapshot.child("entries").getValue(String.class);
+                    String paymentsJson    = snapshot.child("payments").getValue(String.class);
+                    String rateHistoryJson = snapshot.child("rateHistory").getValue(String.class);
+                    String backupTime      = snapshot.child("backupTime").getValue(String.class);
+
+                    if (customersJson != null) {
+                        List<Customer> list = gson.fromJson(customersJson,
+                            new TypeToken<List<Customer>>(){}.getType());
+                        dm.saveCustomers(list != null ? list : new ArrayList<>());
+                    }
+                    if (entriesJson != null) {
+                        List<MilkEntry> list = gson.fromJson(entriesJson,
+                            new TypeToken<List<MilkEntry>>(){}.getType());
+                        dm.saveEntries(list != null ? list : new ArrayList<>());
+                    }
+                    if (paymentsJson != null) {
+                        List<Payment> list = gson.fromJson(paymentsJson,
+                            new TypeToken<List<Payment>>(){}.getType());
+                        dm.savePayments(list != null ? list : new ArrayList<>());
+                    }
+                    if (rateHistoryJson != null) {
+                        List<RateEntry> list = gson.fromJson(rateHistoryJson,
+                            new TypeToken<List<RateEntry>>(){}.getType());
+                        dm.saveRateHistory(list != null ? list : new ArrayList<>());
+                    }
+
+                    callback.onSuccess("✅ Restore ho gaya!\n📅 " + dateKey
+                        + "\n⏱ Backup: " + (backupTime != null ? backupTime : "Unknown")
+                        + "\n👥 " + dm.getCustomers().size() + " Members");
+                } catch (Exception e) {
+                    callback.onFailure("❌ Restore Error: " + e.getMessage());
+                }
+            }
+            @Override
+            public void onCancelled(DatabaseError error) {
+                callback.onFailure("❌ Firebase Error: " + error.getMessage());
+            }
+        });
     }
 }
