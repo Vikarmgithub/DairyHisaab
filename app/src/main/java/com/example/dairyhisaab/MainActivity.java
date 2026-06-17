@@ -87,7 +87,16 @@ public class MainActivity extends AppCompatActivity {
             btnSettings.setOnClickListener(v -> showSettingsDialog());
         }
     }
-
+    @Override
+    protected void onDestroy() {
+    super.onDestroy();
+    DairyDataManager dm = DairyDataManager.getInstance(this);
+    
+    // ✅ Khali ho to backup mat karo
+    if (!dm.getCustomers().isEmpty() || !dm.getEntries().isEmpty()) {
+        LocalBackupHelper.saveLocalBackup(this);
+    }
+}
     // ==================== VIEWS ====================
     private void initViews() {
         tab_dashboard = findViewById(R.id.tab_dashboard);
