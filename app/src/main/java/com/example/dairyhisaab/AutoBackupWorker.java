@@ -15,13 +15,18 @@ public class AutoBackupWorker extends Worker {
     @Override
     public Result doWork() {
         Context context = getApplicationContext();
+        DairyDataManager dm = DairyDataManager.getInstance(context);
+
+        // ✅ Khali data pe backup skip karo
+        if (dm.getCustomers().isEmpty() && dm.getEntries().isEmpty()) {
+            return Result.success();
+        }
 
         // 1. Firebase backup
         boolean firebaseOk = false;
         try {
             FirebaseManager fm = FirebaseManager.getInstance();
             if (fm.isLoggedIn()) {
-                DairyDataManager dm = DairyDataManager.getInstance(context);
                 final boolean[] done = {false};
                 final boolean[] success = {false};
 
