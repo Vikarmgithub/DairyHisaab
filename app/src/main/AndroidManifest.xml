@@ -24,22 +24,20 @@
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE"/>
 
-        <!-- ✅ MainActivity ab seedha launcher hai — Login system hata diya -->
+        <!-- ✅ LoginActivity pehle — login ke baad MainActivity me activation check hoga -->
         <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:windowSoftInputMode="adjustResize">
+            android:name=".LoginActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <!-- LoginActivity rakhi hai (backup/restore ke liye FirebaseAuth abhi bhi use hoti hai)
-             par ab ye launcher nahi hai -->
         <activity
-            android:name=".LoginActivity"
-            android:exported="false"/>
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize"/>
 
         <!-- 👑 Admin Key Generator — sirf admin email se access hoga -->
         <activity
