@@ -32,6 +32,10 @@ public class FirebaseManager {
     private static final String COLLECTION_USERS = "users";
     private static final int MAX_BACKUP_DAYS = 10;
 
+    // ── Demo lock + Device-ID linking (ek account = ek device, demo ek hi baar) ──
+    private static final String KEY_DEMO_USED  = "demoUsed";
+    private static final String KEY_DEVICE_ID  = "deviceId";
+
     private static FirebaseManager instance;
     private final FirebaseFirestore db;
     private final FirebaseAuth auth;
@@ -230,6 +234,71 @@ public class FirebaseManager {
     public String getUserName() {
         FirebaseUser user = auth.getCurrentUser();
         return user != null && user.getDisplayName() != null ? user.getDisplayName() : "";
+    }
+
+    // =====================================================================
+    // 🔒 DEMO LOCK — Demo sirf ek baar mile (reinstall ke baad bhi nahi)
+    // =====================================================================
+
+    public interface BooleanCallback {
+        void onSuccess(boolean value);
+        void onFailure(String error);
+    }
+
+    public interface StringCallback {
+        void onSuccess(String value);
+        void onFailure(String error);
+    }
+
+    // Account pe demo "used" mark karo (ek baar demo start hote hi call karo)
+    public void saveDemoUsed() {
+        String uid = getCurrentUserId();
+        if (uid == null) return;
+        db.collection(COLLECTION_USERS).document(uid)
+                .set(Collections.singletonMap(KEY_DEMO_USED, true), SetOptions.merge())
+                .addOnSuccessListener(a -> Log.d(TAG, "Demo used flag saved"))
+                .addOnFailureListener(e -> Log.e(TAG, "saveDemoUsed failed: " + e.getMessage()));
+    }
+
+    // Firebase se check karo ki is account pe demo pehle use ho chuka hai kya
+    public void checkDemoUsed(BooleanCallback callback) {
+        String uid = getCurrentUserId();
+        if (uid == null) { callback.onSuccess(false); return; }
+        db.collection(COLLECTION_USERS).document(uid)
+                .get(Source.SERVER)
+                .addOnSuccessListener(doc -> {
+                    Boolean used = doc.getBoolean(KEY_DEMO_USED);
+                    callback.onSuccess(used != null && used);
+                })
+                .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
+    }
+
+    // =====================================================================
+    // 🔗 DEVICE ID LINK — Account ek hi device se chale (pehli login wala device lock)
+    // =====================================================================
+
+    // Pehli baar login pe device ID Firebase mein save karo (agar already set nahi hai to)
+    public void saveDeviceIdIfNew(String deviceId) {
+        String uid = getCurrentUserId();
+        if (uid == null || deviceId == null) return;
+        DocumentReference ref = db.collection(COLLECTION_USERS).document(uid);
+        ref.get(Source.SERVER).addOnSuccessListener(doc -> {
+            if (!doc.exists() || !doc.contains(KEY_DEVICE_ID)) {
+                ref.set(Collections.singletonMap(KEY_DEVICE_ID, deviceId), SetOptions.merge())
+                        .addOnSuccessListener(a -> Log.d(TAG, "Device ID linked: " + deviceId))
+                        .addOnFailureListener(e -> Log.e(TAG, "saveDeviceIdIfNew failed: " + e.getMessage()));
+            }
+        }).addOnFailureListener(e -> Log.e(TAG, "saveDeviceIdIfNew read failed: " + e.getMessage()));
+    }
+
+    // Firebase se linked device ID lao (BackupFragment isko use karega backup/restore ke liye)
+    public void getLinkedDeviceId(StringCallback callback) {
+        String uid = getCurrentUserId();
+        if (uid == null) { callback.onSuccess(null); return; }
+        db.collection(COLLECTION_USERS).document(uid)
+                .get(Source.SERVER)
+                .addOnSuccessListener(doc -> callback.onSuccess(doc.getString(KEY_DEVICE_ID)))
+                .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
     }
 
     // =====================================================================

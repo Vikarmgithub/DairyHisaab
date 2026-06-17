@@ -443,65 +443,65 @@ public class BackupFragment extends Fragment {
     // =====================================================================
 
     private void doRealtimeBackup() {
-        String deviceId = getDeviceId();
-
         android.app.ProgressDialog pd = new android.app.ProgressDialog(getContext());
         pd.setMessage("📱 Device backup ho raha hai...");
         pd.setCancelable(false);
         pd.show();
 
-        firebaseManager.backupToRealtimeDB(dm, deviceId, new FirebaseManager.RtdbCallback() {
-            @Override public void onSuccess(String message) {
-                if (getActivity() == null) return;
-                requireActivity().runOnUiThread(() -> {
-                    pd.dismiss();
-                    Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
-                });
-            }
-            @Override public void onFailure(String error) {
-                if (getActivity() == null) return;
-                requireActivity().runOnUiThread(() -> {
-                    pd.dismiss();
-                    Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
-                });
-            }
+        getDeviceId(deviceId -> {
+            firebaseManager.backupToRealtimeDB(dm, deviceId, new FirebaseManager.RtdbCallback() {
+                @Override public void onSuccess(String message) {
+                    if (getActivity() == null) return;
+                    requireActivity().runOnUiThread(() -> {
+                        pd.dismiss();
+                        Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
+                    });
+                }
+                @Override public void onFailure(String error) {
+                    if (getActivity() == null) return;
+                    requireActivity().runOnUiThread(() -> {
+                        pd.dismiss();
+                        Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
+                    });
+                }
+            });
         });
     }
 
     private void doRealtimeRestore() {
-        String deviceId = getDeviceId();
-
         android.app.ProgressDialog pd = new android.app.ProgressDialog(getContext());
         pd.setMessage("📱 Backup dates dekh rahe hain...");
         pd.setCancelable(false);
         pd.show();
 
-        firebaseManager.listRealtimeBackupDates(deviceId, new FirebaseManager.RtdbCallback() {
-            @Override public void onSuccess(String datesStr) {
-                if (getActivity() == null) return;
-                requireActivity().runOnUiThread(() -> {
-                    pd.dismiss();
-                    String[] dates = datesStr.split(",");
-                    String[] display = new String[dates.length];
-                    for (int i = 0; i < dates.length; i++) {
-                        display[i] = "📅 " + dates[i] + (i == 0 ? "  (Latest)" : "");
-                    }
-                    new AlertDialog.Builder(requireContext())
-                        .setTitle("📱 Device Backup — Date Chunein")
-                        .setItems(display, (dialog, which) -> {
-                            confirmRealtimeRestore(deviceId, dates[which]);
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
-                });
-            }
-            @Override public void onFailure(String error) {
-                if (getActivity() == null) return;
-                requireActivity().runOnUiThread(() -> {
-                    pd.dismiss();
-                    Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
-                });
-            }
+        getDeviceId(deviceId -> {
+            firebaseManager.listRealtimeBackupDates(deviceId, new FirebaseManager.RtdbCallback() {
+                @Override public void onSuccess(String datesStr) {
+                    if (getActivity() == null) return;
+                    requireActivity().runOnUiThread(() -> {
+                        pd.dismiss();
+                        String[] dates = datesStr.split(",");
+                        String[] display = new String[dates.length];
+                        for (int i = 0; i < dates.length; i++) {
+                            display[i] = "📅 " + dates[i] + (i == 0 ? "  (Latest)" : "");
+                        }
+                        new AlertDialog.Builder(requireContext())
+                            .setTitle("📱 Device Backup — Date Chunein")
+                            .setItems(display, (dialog, which) -> {
+                                confirmRealtimeRestore(deviceId, dates[which]);
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                    });
+                }
+                @Override public void onFailure(String error) {
+                    if (getActivity() == null) return;
+                    requireActivity().runOnUiThread(() -> {
+                        pd.dismiss();
+                        Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
+                    });
+                }
+            });
         });
     }
 
@@ -536,7 +536,32 @@ public class BackupFragment extends Fragment {
             .show();
     }
 
-    private String getDeviceId() {
+    // 📱 Device ID — pehle Firebase pe linked device ID check karo, warna local ANDROID_ID use karo
+    public interface DeviceIdCallback { void onResult(String deviceId); }
+
+    private void getDeviceId(DeviceIdCallback callback) {
+        if (firebaseManager.isLoggedIn()) {
+            firebaseManager.getLinkedDeviceId(new FirebaseManager.StringCallback() {
+                @Override
+                public void onSuccess(String linkedId) {
+                    if (linkedId != null && !linkedId.isEmpty()) {
+                        callback.onResult(linkedId);
+                    } else {
+                        callback.onResult(getLocalDeviceId());
+                    }
+                }
+                @Override
+                public void onFailure(String error) {
+                    // Firebase fail ho jaye to local device ID se kaam chalao
+                    callback.onResult(getLocalDeviceId());
+                }
+            });
+        } else {
+            callback.onResult(getLocalDeviceId());
+        }
+    }
+
+    private String getLocalDeviceId() {
         try {
             String id = android.provider.Settings.Secure.getString(
                 requireContext().getContentResolver(),

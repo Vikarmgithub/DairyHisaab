@@ -58,6 +58,25 @@ public class MainActivity extends AppCompatActivity {
         activationPrefs  = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         isAppActivated   = activationPrefs.getBoolean(KEY_ACTIVATED, false);
 
+        // --- Firebase: device ID account se link karo + demo used check karo ---
+        if (FirebaseManager.getInstance().isLoggedIn()) {
+            // Pehli baar login pe device ID Firebase mein save karo (agar already set nahi)
+            FirebaseManager.getInstance().saveDeviceIdIfNew(deviceId);
+
+            // Account pe demo pehle use ho chuka hai kya — Firebase se confirm karo
+            FirebaseManager.getInstance().checkDemoUsed(new FirebaseManager.BooleanCallback() {
+                @Override
+                public void onSuccess(boolean used) {
+                    if (used) {
+                        // Local mein bhi mark kar do taki dobara reinstall pe demo na mile
+                        activationPrefs.edit().putBoolean("DemoUsedOnAccount", true).apply();
+                    }
+                }
+                @Override
+                public void onFailure(String error) { }
+            });
+        }
+
         // --- Views init karo ---
         initViews();
         setupTabs();
@@ -246,11 +265,17 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // 🕐 Demo button — sirf pehli baar
-        boolean demoUsed = activationPrefs.getLong(KEY_DEMO_START, 0) > 0;
+        // 🕐 Demo button — sirf pehli baar (local ya account pe pehle use na hua ho)
+        boolean demoUsed = activationPrefs.getLong(KEY_DEMO_START, 0) > 0
+                || activationPrefs.getBoolean("DemoUsedOnAccount", false);
         if (!demoUsed) {
             builder.setNegativeButton("🕐 Demo (1 दिन)", (dialog, which) -> {
                 activationPrefs.edit().putLong(KEY_DEMO_START, System.currentTimeMillis()).apply();
+                activationPrefs.edit().putBoolean("DemoUsedOnAccount", true).apply();
+                // Firebase pe bhi mark karo — taki reinstall ke baad bhi demo dobara na mile
+                if (FirebaseManager.getInstance().isLoggedIn()) {
+                    FirebaseManager.getInstance().saveDemoUsed();
+                }
                 isDemoMode     = true;
                 isAppActivated = true;
                 startDemoTimer(DEMO_DURATION_MS);
