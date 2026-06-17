@@ -116,6 +116,19 @@
 
 
 
+            <!-- 🔑 License / Activation -->
+            <Button
+                android:id="@+id/btnLicense"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="🔑 License / App Activation"
+                android:backgroundTint="#1565C0"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="15sp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="6dp"/>
+
             <!-- 7. Logout (sabse niche) -->
             <Button
                 android:id="@+id/btnLogout"
