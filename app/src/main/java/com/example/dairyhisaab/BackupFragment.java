@@ -70,6 +70,13 @@ public class BackupFragment extends Fragment {
         view.findViewById(R.id.btnChangePin).setOnClickListener(v -> showChangePinDialog());
         view.findViewById(R.id.btnLogout).setOnClickListener(v -> doLogout());
 
+        // 🔑 License / Activation button — Settings tab me seedha milega
+        view.findViewById(R.id.btnLicense).setOnClickListener(v -> {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).showActivationDialog();
+            }
+        });
+
         refreshStatus(view);
         refreshAccountStatus(view);
         return view;
