@@ -90,6 +90,30 @@
                 android:textSize="14sp"
                 android:layout_marginBottom="10dp"/>
 
+            <!-- 3b. Realtime DB Backup (Device ID se) -->
+            <Button
+                android:id="@+id/btnRtdbBackup"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="📱 Device Backup (Realtime DB)"
+                android:backgroundTint="#1B5E20"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="6dp"/>
+
+            <!-- 3c. Realtime DB Restore (Device ID se) -->
+            <Button
+                android:id="@+id/btnRtdbRestore"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="📥 Device Restore (Realtime DB)"
+                android:backgroundTint="#2E7D32"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="10dp"/>
+
             <!-- 4. Local Backup -->
             <Button
                 android:id="@+id/btnBackup"
