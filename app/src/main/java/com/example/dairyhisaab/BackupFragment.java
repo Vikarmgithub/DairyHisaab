@@ -77,6 +77,10 @@ public class BackupFragment extends Fragment {
             }
         });
 
+        // 📱 Realtime DB — Device ID ke naam se backup/restore (Mithai app jaise)
+        view.findViewById(R.id.btnRtdbBackup).setOnClickListener(v -> doRealtimeBackup());
+        view.findViewById(R.id.btnRtdbRestore).setOnClickListener(v -> doRealtimeRestore());
+
         refreshStatus(view);
         refreshAccountStatus(view);
         return view;
@@ -437,6 +441,115 @@ public class BackupFragment extends Fragment {
                 });
             }
         });
+    }
+
+    // =====================================================================
+    // 📱 REALTIME DATABASE — Device ID ke naam se (Mithai app jaise)
+    // =====================================================================
+
+    private void doRealtimeBackup() {
+        String deviceId = getDeviceId();
+
+        android.app.ProgressDialog pd = new android.app.ProgressDialog(getContext());
+        pd.setMessage("📱 Device backup ho raha hai...");
+        pd.setCancelable(false);
+        pd.show();
+
+        firebaseManager.backupToRealtimeDB(dm, deviceId, new FirebaseManager.RtdbCallback() {
+            @Override public void onSuccess(String message) {
+                if (getActivity() == null) return;
+                requireActivity().runOnUiThread(() -> {
+                    pd.dismiss();
+                    Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
+                });
+            }
+            @Override public void onFailure(String error) {
+                if (getActivity() == null) return;
+                requireActivity().runOnUiThread(() -> {
+                    pd.dismiss();
+                    Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void doRealtimeRestore() {
+        String deviceId = getDeviceId();
+
+        android.app.ProgressDialog pd = new android.app.ProgressDialog(getContext());
+        pd.setMessage("📱 Backup dates dekh rahe hain...");
+        pd.setCancelable(false);
+        pd.show();
+
+        firebaseManager.listRealtimeBackupDates(deviceId, new FirebaseManager.RtdbCallback() {
+            @Override public void onSuccess(String datesStr) {
+                if (getActivity() == null) return;
+                requireActivity().runOnUiThread(() -> {
+                    pd.dismiss();
+                    String[] dates = datesStr.split(",");
+                    String[] display = new String[dates.length];
+                    for (int i = 0; i < dates.length; i++) {
+                        display[i] = "📅 " + dates[i] + (i == 0 ? "  (Latest)" : "");
+                    }
+                    new AlertDialog.Builder(requireContext())
+                        .setTitle("📱 Device Backup — Date Chunein")
+                        .setItems(display, (dialog, which) -> {
+                            confirmRealtimeRestore(deviceId, dates[which]);
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+                });
+            }
+            @Override public void onFailure(String error) {
+                if (getActivity() == null) return;
+                requireActivity().runOnUiThread(() -> {
+                    pd.dismiss();
+                    Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void confirmRealtimeRestore(String deviceId, String dateKey) {
+        new AlertDialog.Builder(requireContext())
+            .setTitle("⚠️ Confirm Restore")
+            .setMessage(dateKey + " ka backup restore karne se SAARA DATA replace ho jayega.\n\nSure hain?")
+            .setPositiveButton("Haan, Restore Karo", (d, w) -> {
+                android.app.ProgressDialog pd = new android.app.ProgressDialog(getContext());
+                pd.setMessage("📥 " + dateKey + " ka data restore ho raha hai...");
+                pd.setCancelable(false);
+                pd.show();
+                firebaseManager.restoreFromRealtimeDB(dm, deviceId, dateKey, new FirebaseManager.RtdbCallback() {
+                    @Override public void onSuccess(String message) {
+                        if (getActivity() == null) return;
+                        requireActivity().runOnUiThread(() -> {
+                            pd.dismiss();
+                            refreshStatus(getView());
+                            Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
+                        });
+                    }
+                    @Override public void onFailure(String error) {
+                        if (getActivity() == null) return;
+                        requireActivity().runOnUiThread(() -> {
+                            pd.dismiss();
+                            Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
+                        });
+                    }
+                });
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+    private String getDeviceId() {
+        try {
+            String id = android.provider.Settings.Secure.getString(
+                requireContext().getContentResolver(),
+                android.provider.Settings.Secure.ANDROID_ID);
+            return (id != null && !id.isEmpty()) ? id : "DAIRYHISAAB404";
+        } catch (Exception e) {
+            return "DAIRYHISAAB999";
+        }
     }
 
     private void doLogout() {
