@@ -31,9 +31,9 @@ android {
         
         release {
             storeFile file("../release.keystore")
-            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "Admin@6514"
+            storePassword System.getenv("KEYSTORE_PASSWORD")
             keyAlias "dairyhisaab_release"
-            keyPassword System.getenv("KEY_PASSWORD") ?: "Admin@6514"
+            keyPassword System.getenv("KEY_PASSWORD")
         }
     }
 
