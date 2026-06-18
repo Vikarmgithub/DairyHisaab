@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "391870949035",
+    "firebase_url": "https://dairyhisaab-1465a-default-rtdb.firebaseio.com",
+    "project_id": "dairyhisaab-1465a",
+    "storage_bucket": "dairyhisaab-1465a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:391870949035:android:f5ec0bb6071ac4d030f9ee",
+        "android_client_info": {
+          "package_name": "com.example.dairyhisaab"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "391870949035-n2k3oier2ro9ob0kb6sa3i19v626123m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDynJ9nKyZtOXIOHSnSrcrY5c66zZBg49A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "391870949035-n2k3oier2ro9ob0kb6sa3i19v626123m.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
