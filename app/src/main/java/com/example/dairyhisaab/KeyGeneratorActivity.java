@@ -50,7 +50,7 @@ public class KeyGeneratorActivity extends Activity {
 
         // Title
         TextView tvTitle = new TextView(this);
-        tvTitle.setText("🥛 Dairy Hisaab Kitab\n👑 Admin — Key Generator");
+        tvTitle.setText("🥛 Dairy Hisaab Kitab\n👑 Admin — panal");
         tvTitle.setTextSize(21);
         tvTitle.setTypeface(null, Typeface.BOLD);
         tvTitle.setTextColor(0xFF1565C0);
