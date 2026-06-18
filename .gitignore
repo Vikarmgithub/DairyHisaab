@@ -10,4 +10,3 @@
 /captures
 .externalNativeBuild
 # Firebase config - never commit
-app/google-services.json
