@@ -19,11 +19,6 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Clear Gradle Cache
-      run: |
-        rm -rf ~/.gradle/caches/
-        rm -rf ~/.gradle/wrapper/
-
     - name: Restore release keystore
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
