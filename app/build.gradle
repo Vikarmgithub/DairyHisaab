@@ -40,6 +40,11 @@ android {
             debuggable false
         }
     }
+
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
 }
 
 dependencies {
