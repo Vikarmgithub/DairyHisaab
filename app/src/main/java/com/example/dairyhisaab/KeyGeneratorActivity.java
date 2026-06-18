@@ -113,40 +113,46 @@ public class KeyGeneratorActivity extends Activity {
 
         setContentView(scroll);
 
-        // ---- Logic ----
+        // 🔒 FIX: HMAC-SHA256 based key (MainActivity.validateLicenseKey se match karta hai)
         btnGenerate.setOnClickListener(v -> {
             String dId = etDeviceId.getText().toString().trim();
             if (dId.isEmpty()) {
                 Toast.makeText(this, "Pehle Device ID daalo!", Toast.LENGTH_SHORT).show();
                 return;
             }
-
-            // Algorithm (MainActivity ke validateLicenseKey se match karta hai)
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < dId.length(); i++) {
-                sb.append((char) (dId.charAt(i) + 3));
+            String generatedKey;
+            try {
+                generatedKey = "DAIRY-" + hmacShort(dId) + "-893";
+            } catch (Exception e) {
+                Toast.makeText(this, "Key generation failed!", Toast.LENGTH_SHORT).show();
+                return;
             }
-            String shifted = sb.toString().toUpperCase();
-            if (shifted.length() > 2) {
-                char first = shifted.charAt(0);
-                char last  = shifted.charAt(shifted.length() - 1);
-                shifted = last + shifted.substring(1, shifted.length() - 1) + first;
-            }
-
-            final String generatedKey = "DAIRY-" + shifted + "-" + (dId.length() * 7) + "-893";
 
             tvResult.setText("🔑 License Key:\n\n" + generatedKey);
             btnCopy.setVisibility(View.VISIBLE);
 
+            final String finalKey = generatedKey;
             btnCopy.setOnClickListener(v1 -> {
                 ClipboardManager clipboard =
                     (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                ClipData clip = ClipData.newPlainText("DairyKey", generatedKey);
+                ClipData clip = ClipData.newPlainText("DairyKey", finalKey);
                 if (clipboard != null) {
                     clipboard.setPrimaryClip(clip);
                     Toast.makeText(this, "✅ Key Copy हो गई!", Toast.LENGTH_SHORT).show();
                 }
             });
         });
+    }
+
+    private static final String LICENSE_SECRET = "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_VALUE";
+
+    private static String hmacShort(String deviceId) throws Exception {
+        javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+        mac.init(new javax.crypto.spec.SecretKeySpec(
+                LICENSE_SECRET.getBytes("UTF-8"), "HmacSHA256"));
+        byte[] raw = mac.doFinal(deviceId.getBytes("UTF-8"));
+        StringBuilder hex = new StringBuilder();
+        for (byte b : raw) hex.append(String.format("%02X", b));
+        return hex.substring(0, 12);
     }
 }

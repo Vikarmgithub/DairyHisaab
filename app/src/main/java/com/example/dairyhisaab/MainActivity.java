@@ -319,22 +319,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ==================== 🔑 KEY VALIDATION ====================
+    // 🔒 FIX: Caesar cipher (+3) crackable tha — har koi khud key bana sakta tha.
+    // Ab HMAC-SHA256 use kar rahe hain. NOTE: Ye sirf casual cracking rokta hai —
+    // secret abhi bhi APK mein hai (decompile se nikal sakta hai). Asli secure fix
+    // = server/Cloud Function se license verify karo, client mein secret na rakho.
+    private static final String LICENSE_SECRET = "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_VALUE";
+
     private boolean validateLicenseKey(String enteredKey, String dId) {
         try {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < dId.length(); i++) {
-                sb.append((char) (dId.charAt(i) + 3));
-            }
-            String shifted = sb.toString().toUpperCase();
-            if (shifted.length() > 2) {
-                char first = shifted.charAt(0);
-                char last  = shifted.charAt(shifted.length() - 1);
-                shifted = last + shifted.substring(1, shifted.length() - 1) + first;
-            }
-            String expectedKey = "DAIRY-" + shifted + "-" + (dId.length() * 7) + "-893";
+            String expectedKey = "DAIRY-" + hmacShort(dId) + "-893";
             return enteredKey.equalsIgnoreCase(expectedKey);
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private static String hmacShort(String deviceId) throws Exception {
+        javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+        mac.init(new javax.crypto.spec.SecretKeySpec(
+                LICENSE_SECRET.getBytes("UTF-8"), "HmacSHA256"));
+        byte[] raw = mac.doFinal(deviceId.getBytes("UTF-8"));
+        StringBuilder hex = new StringBuilder();
+        for (byte b : raw) hex.append(String.format("%02X", b));
+        return hex.substring(0, 12); // pehle 12 hex chars kaafi hain
     }
 }

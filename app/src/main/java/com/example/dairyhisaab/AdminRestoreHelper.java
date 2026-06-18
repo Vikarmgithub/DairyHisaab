@@ -10,6 +10,17 @@ import java.util.Map;
 
 public class AdminRestoreHelper {
 
+    // 🔒 CRITICAL: Ye code khud "self-approve" bypass nahi rok sakta — woh
+    // Firebase Console > Firestore > Rules mein fix karna hoga. Wahan ye rule
+    // zaroor lagao:
+    //   match /restore_requests/{id} {
+    //     allow create: if request.auth != null
+    //                    && request.resource.data.status == "pending";
+    //     allow read: if request.auth != null;
+    //     allow update, delete: if false; // sirf Admin SDK/Cloud Function se allowed
+    //   }
+    // Bina iske, koi bhi client apna khud ka status="approved" likh sakta hai.
+
     public static void requestRestore(FragmentActivity activity, DairyDataManager dm, FirebaseManager fm, Runnable onSuccess) {
         new AlertDialog.Builder(activity)
             .setTitle("Admin Approval Chahiye")

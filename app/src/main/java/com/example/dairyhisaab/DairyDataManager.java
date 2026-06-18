@@ -93,9 +93,22 @@ public class DairyDataManager {
 
     // ── PIN ──
     public boolean hasPin() { return prefs.contains(KEY_PIN); }
-    public void savePin(String pin) { prefs.edit().putString(KEY_PIN, pin).apply(); }
+    // 🔒 FIX: PIN plaintext mein save hota tha — ab salted SHA-256 hash save karte hain
+    public void savePin(String pin) { prefs.edit().putString(KEY_PIN, hashPin(pin)).apply(); }
     public boolean verifyPin(String pin) {
-        return pin != null && pin.equals(prefs.getString(KEY_PIN, ""));
+        return pin != null && hashPin(pin).equals(prefs.getString(KEY_PIN, ""));
+    }
+    private static String hashPin(String pin) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            md.update("dairyhisaab_pin_salt_v1".getBytes("UTF-8")); // static salt
+            byte[] hash = md.digest(pin.getBytes("UTF-8"));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            return pin; // fallback, ideally unreachable
+        }
     }
 
     // ── Restore flag ──
