@@ -312,13 +312,13 @@ public class FirebaseManager {
     }
 
     public void backupToRealtimeDB(DairyDataManager dm, String deviceId, RtdbCallback callback) {
-        String uid = getCurrentUserId();
-        if (uid == null) { callback.onFailure("Login nahi hai!"); return; }
+        String currentUid = getCurrentUserId();
+        if (currentUid == null) { callback.onFailure("Login nahi hai!"); return; }
         if (dm.getCustomers().isEmpty() && dm.getEntries().isEmpty()) {
             callback.onFailure("⚠️ Koi data nahi — Backup skip!");
             return;
         }
-        deviceId = uid; // 🔒 FIX: ANDROID_ID guessable tha, ab auth UID use karo
+        final String uid = currentUid; // 🔒 FIX: ANDROID_ID guessable tha, ab auth UID use karo (final for lambda)
 
         String dateKey    = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         String backupTime = new SimpleDateFormat("dd-MMM-yyyy HH:mm", Locale.getDefault()).format(new Date());
@@ -328,7 +328,7 @@ public class FirebaseManager {
         String paymentsJson    = gson.toJson(dm.getPayments());
         String rateHistoryJson = gson.toJson(dm.getRateHistory());
 
-        DatabaseReference todayRef = rtdbRef.child(deviceId).child(dateKey);
+        DatabaseReference todayRef = rtdbRef.child(uid).child(dateKey);
         todayRef.child("customers").setValue(customersJson);
         todayRef.child("entries").setValue(entriesJson);
         todayRef.child("payments").setValue(paymentsJson);
@@ -341,7 +341,7 @@ public class FirebaseManager {
                 for (int i = 11; i <= 60; i++) {
                     cal.setTime(new Date());
                     cal.add(Calendar.DAY_OF_YEAR, -i);
-                    rtdbRef.child(deviceId).child(sdf.format(cal.getTime())).removeValue();
+                    rtdbRef.child(uid).child(sdf.format(cal.getTime())).removeValue();
                 }
                 callback.onSuccess("✅ Realtime DB Backup ho gaya!\n📅 " + dateKey
                     + "\n👥 " + dm.getCustomers().size() + " Members"
@@ -351,10 +351,10 @@ public class FirebaseManager {
     }
 
     public void listRealtimeBackupDates(String deviceId, RtdbCallback callback) {
-        String uid = getCurrentUserId();
-        if (uid == null) { callback.onFailure("Login nahi hai!"); return; }
-        deviceId = uid; // 🔒 FIX
-        rtdbRef.child(deviceId).addListenerForSingleValueEvent(new ValueEventListener() {
+        String currentUid = getCurrentUserId();
+        if (currentUid == null) { callback.onFailure("Login nahi hai!"); return; }
+        final String uid = currentUid; // 🔒 FIX
+        rtdbRef.child(uid).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 if (!snapshot.exists() || !snapshot.hasChildren()) {
@@ -377,10 +377,10 @@ public class FirebaseManager {
 
     public void restoreFromRealtimeDB(DairyDataManager dm, String deviceId,
                                       String dateKey, RtdbCallback callback) {
-        String uid = getCurrentUserId();
-        if (uid == null) { callback.onFailure("Login nahi hai!"); return; }
-        deviceId = uid; // 🔒 FIX
-        rtdbRef.child(deviceId).child(dateKey).addListenerForSingleValueEvent(new ValueEventListener() {
+        String currentUid = getCurrentUserId();
+        if (currentUid == null) { callback.onFailure("Login nahi hai!"); return; }
+        final String uid = currentUid; // 🔒 FIX
+        rtdbRef.child(uid).child(dateKey).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 if (!snapshot.exists()) {
