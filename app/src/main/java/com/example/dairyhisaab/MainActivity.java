@@ -323,7 +323,7 @@ public class MainActivity extends AppCompatActivity {
     // Ab HMAC-SHA256 use kar rahe hain. NOTE: Ye sirf casual cracking rokta hai —
     // secret abhi bhi APK mein hai (decompile se nikal sakta hai). Asli secure fix
     // = server/Cloud Function se license verify karo, client mein secret na rakho.
-    private static final String LICENSE_SECRET = "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_VALUE";
+    private static final String LICENSE_SECRET = "RqQ*z3nv#7^urEfP#kRTJEq@D@kBMycI^#*Atmb8";
 
     private boolean validateLicenseKey(String enteredKey, String dId) {
         try {

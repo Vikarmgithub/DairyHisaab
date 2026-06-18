@@ -144,7 +144,7 @@ public class KeyGeneratorActivity extends Activity {
         });
     }
 
-    private static final String LICENSE_SECRET = "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_VALUE";
+    private static final String LICENSE_SECRET = "RqQ*z3nv#7^urEfP#kRTJEq@D@kBMycI^#*Atmb8";
 
     private static String hmacShort(String deviceId) throws Exception {
         javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
