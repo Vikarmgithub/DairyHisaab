@@ -6,6 +6,16 @@
     android:fillViewport="true">
 
     <LinearLayout
+    <ImageView
+        android:id="@+id/loginLogo"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:src="@drawable/ic_launcher"
+        android:contentDescription="Dairy Logo"
+        android:scaleType="centerInside"
+        android:layout_marginTop="30dp"
+        android:layout_marginBottom="20dp" />
+
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
