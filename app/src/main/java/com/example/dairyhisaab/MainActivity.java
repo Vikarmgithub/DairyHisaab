@@ -200,19 +200,53 @@ public class MainActivity extends AppCompatActivity {
         String[] options = {
             "🔑 License / Activation  [" + status + "]",
             "👑 Admin Panel (Key Generator)"
+            "🔒 Password Badlein (Email se)"
         };
 
         new AlertDialog.Builder(this)
             .setTitle("⚙️ Settings")
             .setItems(options, (dialog, which) -> {
-                if (which == 0) showActivationDialog();
-                else if (which == 1) {
-                    Intent intent = new Intent(this, KeyGeneratorActivity.class);
-                    startActivity(intent);
-                }
-            })
+    if (which == 0) showActivationDialog();
+    else if (which == 1) {
+        Intent intent = new Intent(this, KeyGeneratorActivity.class);
+        startActivity(intent);
+    } else if (which == 2) {
+        sendPasswordChangeEmail();
+    }
+})
             .setNegativeButton("बंद करें", null)
             .show();
+    }
+    private void sendPasswordChangeEmail() {
+    com.google.firebase.auth.FirebaseUser user =
+        com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+
+    if (user == null || user.getEmail() == null) {
+        Toast.makeText(this, "Login nahi hai ya email nahi mila!", Toast.LENGTH_SHORT).show();
+        return;
+    }
+
+    // Sirf email/password wale users ke liye (Google Sign-In users ka Firebase password nahi hota)
+    boolean isEmailUser = user.getProviderData().stream()
+            .anyMatch(info -> info.getProviderId().equals("password"));
+    if (!isEmailUser) {
+        Toast.makeText(this, "Google Sign-In account ka password Google se hi change hoga.", Toast.LENGTH_LONG).show();
+        return;
+    }
+
+    com.google.firebase.auth.FirebaseAuth.getInstance()
+        .sendPasswordResetEmail(user.getEmail())
+        .addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                Toast.makeText(this,
+                    "📧 Password reset link bheja gaya " + user.getEmail() + " pe! Email check karo.",
+                    Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this,
+                    "❌ Failed: " + (task.getException() != null ? task.getException().getMessage() : "Error"),
+                    Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     // ==================== 🔒 DEVICE-ID DEMO LOCK CHECK ====================
