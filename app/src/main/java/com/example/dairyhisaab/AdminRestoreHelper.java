@@ -100,10 +100,6 @@ public class AdminRestoreHelper {
                     pd.dismiss();
                     try {
                         fm.restoreData(dm, data);
-
-                        // Request document delete karo
-                        com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                            
                         Toast.makeText(activity,
                             "✅ Restore Successful!\nApp ab reload ho rahi hai...",
                             Toast.LENGTH_LONG).show();
