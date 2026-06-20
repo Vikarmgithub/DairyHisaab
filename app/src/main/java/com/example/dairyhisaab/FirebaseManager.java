@@ -314,15 +314,16 @@ public class FirebaseManager {
     // 🔑 License check — Firestore licenses/{deviceId} document mein valid:true hai ya nahi.
     // Write client se kabhi possible nahi (rules mein blocked) — sirf admin Console se daalega.
     public void checkLicenseValid(String deviceId, BooleanCallback callback) {
-        if (deviceId == null || deviceId.isEmpty()) { callback.onSuccess(false); return; }
-        db.collection("licenses").document(deviceId)
-                .get(Source.SERVER)
-                .addOnSuccessListener(doc -> {
-                    Boolean valid = doc.getBoolean("valid");
-                    callback.onSuccess(valid != null && valid);
-                })
-                .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
-    }
+    if (deviceId == null || deviceId.isEmpty()) { callback.onSuccess(false); return; }
+    db.collection("licenses").document(deviceId)
+            .get(Source.SERVER)
+            .addOnSuccessListener(doc -> {
+                // Agar document sirf bana hua bhi hai (bhale hi khali ho), toh license valid hai
+                callback.onSuccess(doc.exists()); 
+            })
+            .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
+}
+
 
     // Device ID pe demo "used" permanently mark karo (demo start hote hi call karo)
     public void markDeviceDemoUsed(String deviceId) {
