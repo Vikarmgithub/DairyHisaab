@@ -199,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
 
         String[] options = {
             "🔑 License / Activation  [" + status + "]",
-            "👑 Admin Panel (Key Generator)"
+            "👑 Admin Panel (Key Generator)", 
             "🔒 Password Badlein (Email se)"
         };
 
