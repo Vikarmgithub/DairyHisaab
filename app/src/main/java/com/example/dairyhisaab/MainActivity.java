@@ -59,7 +59,21 @@ public class MainActivity extends AppCompatActivity {
         // --- Activation check karo ---
         activationPrefs  = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         isAppActivated   = activationPrefs.getBoolean(KEY_ACTIVATED, false);
-
+    if (isAppActivated) {
+    FirebaseManager.getInstance().checkLicenseRevoked(deviceId, new FirebaseManager.BooleanCallback() {
+        @Override
+        public void onSuccess(boolean revoked) {
+            if (revoked) {
+                activationPrefs.edit().putBoolean(KEY_ACTIVATED, false).apply();
+                isAppActivated = false;
+                Toast.makeText(MainActivity.this, "❌ License revoke ho gayi hai. Dobara activate karein.", Toast.LENGTH_LONG).show();
+                recreate();
+            }
+        }
+        @Override
+        public void onFailure(String error) { }
+    });
+                    }
         // --- Firebase: device ID account se link karo + demo used check karo ---
         if (FirebaseManager.getInstance().isLoggedIn()) {
             // Pehli baar login pe device ID Firebase mein save karo (agar already set nahi)
