@@ -259,7 +259,16 @@ public class FirebaseManager {
                 .addOnSuccessListener(a -> Log.d(TAG, "Demo used flag saved"))
                 .addOnFailureListener(e -> Log.e(TAG, "saveDemoUsed failed: " + e.getMessage()));
     }
-
+    public void checkLicenseRevoked(String deviceId, BooleanCallback callback) {
+    if (deviceId == null || deviceId.isEmpty()) { callback.onSuccess(false); return; }
+    db.collection("revoked_licenses").document(deviceId)
+            .get(Source.SERVER)
+            .addOnSuccessListener(doc -> {
+                Boolean revoked = doc.getBoolean("revoked");
+                callback.onSuccess(revoked != null && revoked);
+            })
+            .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
+}
     // Firebase se check karo ki is account pe demo pehle use ho chuka hai kya
     public void checkDemoUsed(BooleanCallback callback) {
         String uid = getCurrentUserId();
