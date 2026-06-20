@@ -41,6 +41,7 @@ public class AdminRestoreHelper {
         req.put("userEmail", fm.getUserEmail());
         req.put("status", "pending");
         req.put("timestamp", System.currentTimeMillis());
+        req.put("uid", com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid());
 
         com.google.firebase.firestore.FirebaseFirestore.getInstance()
             .collection("restore_requests").document(requestId)
