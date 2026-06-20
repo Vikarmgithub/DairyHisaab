@@ -1,6 +1,7 @@
 package com.example.dairyhisaab;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -37,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private static final long   DEMO_DURATION_MS = 24L * 60 * 60 * 1000; // 24 ghante
     private boolean isAppActivated = false;
     private boolean isDemoMode     = false;
+    private boolean demoUsedOnDevice = false; // 🔒 device_locks se aaya result (cached for this session)
     private CountDownTimer demoCountDownTimer = null;
     private TextView tvDemoTimer = null;
 
@@ -85,19 +87,24 @@ public class MainActivity extends AppCompatActivity {
         tvDemoTimer = findViewById(R.id.tvDemoTimer);
 
         // --- Demo / Activation flow ---
+        // 🔒 FIX: Pehle ye dialog turant (synchronously) khul jaata tha jabki Firebase
+        // ka demo-used check abhi async chal rha hota tha — isliye check complete hone
+        // se pehle hi Demo button dikh jaata tha (race condition). Ab dialog device-ID
+        // lock check complete hone ke BAAD hi khulta hai.
         long demoStart = activationPrefs.getLong(KEY_DEMO_START, 0);
         if (!isAppActivated && demoStart > 0) {
             long elapsed = System.currentTimeMillis() - demoStart;
             if (elapsed < DEMO_DURATION_MS) {
+                // Demo isi install pe pehle se chal rha hai — dobara check ki zaroorat nahi
                 isDemoMode     = true;
                 isAppActivated = true;
                 startDemoTimer(DEMO_DURATION_MS - elapsed);
             } else {
                 activationPrefs.edit().remove(KEY_DEMO_START).apply();
-                showActivationDialog();
+                verifyDeviceDemoLockThenShowDialog();
             }
         } else if (!isAppActivated) {
-            showActivationDialog();
+            verifyDeviceDemoLockThenShowDialog();
         }
 
         // --- Settings button ---
@@ -110,9 +117,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
     super.onDestroy();
     DairyDataManager dm = DairyDataManager.getInstance(this);
-    
-    // ✅ Khali ho to backup mat karo
-    if (!dm.getCustomers().isEmpty() || !dm.getEntries().isEmpty()) {
+
+    // ✅ Khali ho to backup mat karo, aur Demo Mode mein auto-backup bhi mat karo
+    if (!DemoLockHelper.isDemoActive(this)
+            && (!dm.getCustomers().isEmpty() || !dm.getEntries().isEmpty())) {
         LocalBackupHelper.saveLocalBackup(this);
     }
 }
@@ -193,6 +201,37 @@ public class MainActivity extends AppCompatActivity {
             .show();
     }
 
+    // ==================== 🔒 DEVICE-ID DEMO LOCK CHECK ====================
+    // Activation dialog dikhane se PEHLE Firebase se confirm karo ki is device ID
+    // ne kabhi demo use kiya hai ya nahi — reinstall ya naya account banane se
+    // bhi ye lock bypass nahi hota, kyunki ye device ID pe based hai, account pe nahi.
+    private void verifyDeviceDemoLockThenShowDialog() {
+        final ProgressDialog pd = new ProgressDialog(this);
+        pd.setMessage("⏳ Activation status check ho raha hai...");
+        pd.setCancelable(false);
+        pd.show();
+
+        FirebaseManager.getInstance().checkDeviceDemoUsed(deviceId, new FirebaseManager.BooleanCallback() {
+            @Override
+            public void onSuccess(boolean usedOnDevice) {
+                demoUsedOnDevice = usedOnDevice;
+                if (usedOnDevice) {
+                    // Local cache bhi update kar do (fast path agle baar ke liye)
+                    activationPrefs.edit().putBoolean("DemoUsedOnAccount", true).apply();
+                }
+                if (pd.isShowing()) pd.dismiss();
+                showActivationDialog();
+            }
+            @Override
+            public void onFailure(String error) {
+                // Firebase fail (offline waghera) — local cache pe hi bharosa karo,
+                // app ko block nahi karna kyunki internet na hone se demo dena galat hoga
+                if (pd.isShowing()) pd.dismiss();
+                showActivationDialog();
+            }
+        });
+    }
+
     // ==================== 🔐 ACTIVATION DIALOG ====================
     public void showActivationDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -265,17 +304,21 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // 🕐 Demo button — sirf pehli baar (local ya account pe pehle use na hua ho)
+        // 🕐 Demo button — sirf pehli baar (local, account, YA device pe pehle use na hua ho)
         boolean demoUsed = activationPrefs.getLong(KEY_DEMO_START, 0) > 0
-                || activationPrefs.getBoolean("DemoUsedOnAccount", false);
+                || activationPrefs.getBoolean("DemoUsedOnAccount", false)
+                || demoUsedOnDevice; // 🔒 device-ID lock — reinstall/naya account se bhi bypass nahi hota
         if (!demoUsed) {
             builder.setNegativeButton("🕐 Demo (1 दिन)", (dialog, which) -> {
                 activationPrefs.edit().putLong(KEY_DEMO_START, System.currentTimeMillis()).apply();
                 activationPrefs.edit().putBoolean("DemoUsedOnAccount", true).apply();
-                // Firebase pe bhi mark karo — taki reinstall ke baad bhi demo dobara na mile
+                demoUsedOnDevice = true;
+                // Firebase pe bhi mark karo — account AND device dono pe, taaki
+                // reinstall ya naya account banane par bhi demo dobara na mile
                 if (FirebaseManager.getInstance().isLoggedIn()) {
                     FirebaseManager.getInstance().saveDemoUsed();
                 }
+                FirebaseManager.getInstance().markDeviceDemoUsed(deviceId);
                 isDemoMode     = true;
                 isAppActivated = true;
                 startDemoTimer(DEMO_DURATION_MS);

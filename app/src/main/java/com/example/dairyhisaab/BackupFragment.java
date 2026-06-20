@@ -49,6 +49,17 @@ public class BackupFragment extends Fragment {
 
     public BackupFragment() {}
 
+    // 🔒 Demo Mode mein Backup/Restore allowed nahi — check + toast karo
+    private boolean blockIfDemoActive() {
+        if (getContext() != null && DemoLockHelper.isDemoActive(getContext())) {
+            Toast.makeText(getContext(),
+                    "🚫 Demo Mode mein Backup/Restore allowed nahi hai.\nApp activate karke iska use karein.",
+                    Toast.LENGTH_LONG).show();
+            return true;
+        }
+        return false;
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -63,18 +74,18 @@ public class BackupFragment extends Fragment {
             // Access granted - kuch alag karne ki zaroorat nahi, UI already visible hai
         });
 
-        view.findViewById(R.id.btnBackup).setOnClickListener(v -> doLocalBackup());
-        view.findViewById(R.id.btnDriveBackup).setOnClickListener(v -> doFirebaseBackup());
-        view.findViewById(R.id.btnDriveRestore).setOnClickListener(v -> doFirebaseRestore());
-        view.findViewById(R.id.btnRestore).setOnClickListener(v -> pickRestoreFile());
+        view.findViewById(R.id.btnBackup).setOnClickListener(v -> { if (!blockIfDemoActive()) doLocalBackup(); });
+        view.findViewById(R.id.btnDriveBackup).setOnClickListener(v -> { if (!blockIfDemoActive()) doFirebaseBackup(); });
+        view.findViewById(R.id.btnDriveRestore).setOnClickListener(v -> { if (!blockIfDemoActive()) doFirebaseRestore(); });
+        view.findViewById(R.id.btnRestore).setOnClickListener(v -> { if (!blockIfDemoActive()) pickRestoreFile(); });
         view.findViewById(R.id.btnChangePin).setOnClickListener(v -> showChangePinDialog());
         view.findViewById(R.id.btnLogout).setOnClickListener(v -> doLogout());
 
         
 
         // 📱 Realtime DB — Device ID ke naam se backup/restore (Mithai app jaise)
-        view.findViewById(R.id.btnRtdbBackup).setOnClickListener(v -> doRealtimeBackup());
-        view.findViewById(R.id.btnRtdbRestore).setOnClickListener(v -> doRealtimeRestore());
+        view.findViewById(R.id.btnRtdbBackup).setOnClickListener(v -> { if (!blockIfDemoActive()) doRealtimeBackup(); });
+        view.findViewById(R.id.btnRtdbRestore).setOnClickListener(v -> { if (!blockIfDemoActive()) doRealtimeRestore(); });
 
         refreshStatus(view);
         refreshAccountStatus(view);

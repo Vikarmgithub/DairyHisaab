@@ -274,6 +274,47 @@ public class FirebaseManager {
     }
 
     // =====================================================================
+    // 🔒 DEVICE-ID DEMO LOCK — "ek device id sirf ek baar hi demo use kar sake"
+    // Pehla wala lock (KEY_DEMO_USED) account/UID se juda tha, isliye reinstall
+    // ke baad naya/dusra account banake demo dobara mil jaata tha. Ye naya lock
+    // seedha DEVICE ID pe based hai (alag collection "device_locks"), isliye
+    // reinstall ya naya account — kuch bhi badlo, same device pe demo sirf
+    // ek hi baar milega.
+    //
+    // NOTE: Firestore Security Rules mein ye collection allow karna hoga, e.g.:
+    //   match /device_locks/{deviceId} {
+    //     allow read: if request.auth != null;
+    //     allow create, update: if request.auth != null
+    //                  && request.resource.data.demoUsed == true; // sirf true set kar sakte hain, hata nahi sakte
+    //   }
+    // =====================================================================
+    private static final String COLLECTION_DEVICE_LOCKS = "device_locks";
+
+    // Is device ID ne pehle demo use kiya hai kya — Firestore se confirm karo
+    public void checkDeviceDemoUsed(String deviceId, BooleanCallback callback) {
+        if (deviceId == null || deviceId.isEmpty()) { callback.onSuccess(false); return; }
+        db.collection(COLLECTION_DEVICE_LOCKS).document(deviceId)
+                .get(Source.SERVER)
+                .addOnSuccessListener(doc -> {
+                    Boolean used = doc.getBoolean(KEY_DEMO_USED);
+                    callback.onSuccess(used != null && used);
+                })
+                .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
+    }
+
+    // Device ID pe demo "used" permanently mark karo (demo start hote hi call karo)
+    public void markDeviceDemoUsed(String deviceId) {
+        if (deviceId == null || deviceId.isEmpty()) return;
+        Map<String, Object> data = new HashMap<>();
+        data.put(KEY_DEMO_USED, true);
+        data.put("firstUsedAt", System.currentTimeMillis());
+        db.collection(COLLECTION_DEVICE_LOCKS).document(deviceId)
+                .set(data, SetOptions.merge())
+                .addOnSuccessListener(a -> Log.d(TAG, "Device demo lock saved: " + deviceId))
+                .addOnFailureListener(e -> Log.e(TAG, "markDeviceDemoUsed failed: " + e.getMessage()));
+    }
+
+    // =====================================================================
     // 🔗 DEVICE ID LINK — Account ek hi device se chale (pehli login wala device lock)
     // =====================================================================
 

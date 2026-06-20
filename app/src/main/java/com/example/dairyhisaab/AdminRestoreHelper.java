@@ -22,6 +22,11 @@ public class AdminRestoreHelper {
     // Bina iske, koi bhi client apna khud ka status="approved" likh sakta hai.
 
     public static void requestRestore(FragmentActivity activity, DairyDataManager dm, FirebaseManager fm, Runnable onSuccess) {
+        // 🔒 Demo Mode mein cloud restore bhi block karo
+        if (DemoLockHelper.isDemoActive(activity)) {
+            Toast.makeText(activity, "🚫 Demo Mode mein Restore allowed nahi hai.", Toast.LENGTH_LONG).show();
+            return;
+        }
         new AlertDialog.Builder(activity)
             .setTitle("Admin Approval Chahiye")
             .setMessage("Cloud restore ke liye admin approval zaroori hai.\n\nRequest bhejein?")

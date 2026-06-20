@@ -15,6 +15,12 @@ public class AutoBackupWorker extends Worker {
     @Override
     public Result doWork() {
         Context context = getApplicationContext();
+
+        // 🔒 Demo Mode mein auto-backup (Firebase + Local) bhi block karo
+        if (DemoLockHelper.isDemoActive(context)) {
+            return Result.success();
+        }
+
         DairyDataManager dm = DairyDataManager.getInstance(context);
 
         // ✅ Khali data pe backup skip karo
