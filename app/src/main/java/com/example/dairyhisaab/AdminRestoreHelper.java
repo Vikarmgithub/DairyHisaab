@@ -74,8 +74,7 @@ public class AdminRestoreHelper {
                                 doRestore(activity, dm, fm, requestId, onSuccess);
                             } else if ("rejected".equals(st)) {
                                 wp.dismiss();
-                                com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                                    .collection("restore_requests").document(requestId).delete();
+                                
                                 Toast.makeText(activity, "Admin ne reject kar diya.", Toast.LENGTH_LONG).show();
                             } else {
                                 handler.postDelayed(checker[0], 5000);
@@ -103,8 +102,7 @@ public class AdminRestoreHelper {
 
                         // Request document delete karo
                         com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                            .collection("restore_requests").document(requestId).delete();
-
+                            
                         Toast.makeText(activity,
                             "✅ Restore Successful!\nApp ab reload ho rahi hai...",
                             Toast.LENGTH_LONG).show();
