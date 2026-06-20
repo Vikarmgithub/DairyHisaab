@@ -315,41 +315,37 @@ public class MainActivity extends AppCompatActivity {
         });
         layout.addView(btnCopy);
 
-        // --- License Key input ---
-        TextView tvLabel = new TextView(this);
-        tvLabel.setText("\n🔑 License Key यहाँ डालें:");
-        tvLabel.setTextSize(14);
-        tvLabel.setTextColor(Color.BLACK);
-        layout.addView(tvLabel);
-
-        EditText etKey = new EditText(this);
-        etKey.setHint("DAIRY-XXXXXX-XX-893");
-        etKey.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
-                           android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
-        layout.addView(etKey);
-
         builder.setView(layout);
 
-        // ✅ Activate button
-        builder.setPositiveButton("✅ Activate", (dialog, which) -> {
-            String key = etKey.getText().toString().trim();
-            if (validateLicenseKey(key, deviceId)) {
-                activationPrefs.edit()
-                    .putBoolean(KEY_ACTIVATED, true)
-                    .remove(KEY_DEMO_START)
-                    .apply();
-                isAppActivated = true;
-                isDemoMode     = false;
-                if (demoCountDownTimer != null) {
-                    demoCountDownTimer.cancel();
-                    demoCountDownTimer = null;
+        // ✅ Activate button — ab Firestore licenses/{deviceId} se check hota hai
+        builder.setPositiveButton("✅ Activation Check Karein", (dialog, which) -> {
+            Toast.makeText(this, "⏳ Check kar rahe hain...", Toast.LENGTH_SHORT).show();
+            FirebaseManager.getInstance().checkLicenseValid(deviceId, new FirebaseManager.BooleanCallback() {
+                @Override
+                public void onSuccess(boolean valid) {
+                    if (valid) {
+                        activationPrefs.edit()
+                            .putBoolean(KEY_ACTIVATED, true)
+                            .remove(KEY_DEMO_START)
+                            .apply();
+                        isAppActivated = true;
+                        isDemoMode     = false;
+                        if (demoCountDownTimer != null) {
+                            demoCountDownTimer.cancel();
+                            demoCountDownTimer = null;
+                        }
+                        if (tvDemoTimer != null) tvDemoTimer.setVisibility(View.GONE);
+                        Toast.makeText(MainActivity.this, "🎉 App Activate हो गई! धन्यवाद।", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, "❌ Abhi activate nahi hua. Admin se contact karein.", Toast.LENGTH_LONG).show();
+                        showActivationDialog();
+                    }
                 }
-                if (tvDemoTimer != null) tvDemoTimer.setVisibility(View.GONE);
-                Toast.makeText(this, "🎉 App Activate हो गई! धन्यवाद।", Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(this, "❌ गलत License Key! दोबारा कोशिश करें।", Toast.LENGTH_SHORT).show();
-                showActivationDialog();
-            }
+                @Override
+                public void onFailure(String error) {
+                    Toast.makeText(MainActivity.this, "⚠️ Internet check karo, dobara try karo.", Toast.LENGTH_LONG).show();
+                }
+            });
         });
 
         // 🕐 Demo button — sirf pehli baar (local, account, YA device pe pehle use na hua ho)
@@ -409,29 +405,4 @@ public class MainActivity extends AppCompatActivity {
         }.start();
     }
 
-    // ==================== 🔑 KEY VALIDATION ====================
-    // 🔒 FIX: Caesar cipher (+3) crackable tha — har koi khud key bana sakta tha.
-    // Ab HMAC-SHA256 use kar rahe hain. NOTE: Ye sirf casual cracking rokta hai —
-    // secret abhi bhi APK mein hai (decompile se nikal sakta hai). Asli secure fix
-    // = server/Cloud Function se license verify karo, client mein secret na rakho.
-    private static final String LICENSE_SECRET = "RqQ*z3nv#7^urEfP#kRTJEq@D@kBMycI^#*Atmb8";
-
-    private boolean validateLicenseKey(String enteredKey, String dId) {
-        try {
-            String expectedKey = "DAIRY-" + hmacShort(dId) + "-893";
-            return enteredKey.equalsIgnoreCase(expectedKey);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private static String hmacShort(String deviceId) throws Exception {
-        javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
-        mac.init(new javax.crypto.spec.SecretKeySpec(
-                LICENSE_SECRET.getBytes("UTF-8"), "HmacSHA256"));
-        byte[] raw = mac.doFinal(deviceId.getBytes("UTF-8"));
-        StringBuilder hex = new StringBuilder();
-        for (byte b : raw) hex.append(String.format("%02X", b));
-        return hex.substring(0, 12); // pehle 12 hex chars kaafi hain
-    }
 }
