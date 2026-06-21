@@ -770,7 +770,15 @@ public class DailyEntryFragment extends Fragment {
             if (e.date.equals(date) && e.shift.equalsIgnoreCase(selectedShift)) {
                 sessionEntries.add(e);
                 Customer c = findCustomer(e.cid);
-                if (c != null) addEntryRowToList(e, c);
+                if (c != null) {
+                    addEntryRowToList(e, c);
+                } else {
+                    // Member nahi mila (deleted/stale cid) — fallback row taaki total aur list match karein
+                    Customer unknown = new Customer();
+                    unknown.id = e.cid;
+                    unknown.name = "❓ Unknown (" + e.cid + ")";
+                    addEntryRowToList(e, unknown);
+                }
             }
         }
         updateTotalSummary();
