@@ -35,6 +35,7 @@ public class DairyDataManager {
     private static final String KEY_PAYMENTS     = "dairy_payments";
     private static final String KEY_RATE_HISTORY = "dairy_rateHistory";
     private static final String KEY_PIN          = "dairy_delete_pin";
+    private static final String KEY_PIN_SALT     = "dairy_pin_salt"; // 🔒 har install ka apna random salt
 
     // Agar 2 second ke andar kai baar save hua to sirf 1 baar backup hoga
     private final Handler backupHandler = new Handler(Looper.getMainLooper());
@@ -94,14 +95,48 @@ public class DairyDataManager {
     // ── PIN ──
     public boolean hasPin() { return prefs.contains(KEY_PIN); }
     // 🔒 FIX: PIN plaintext mein save hota tha — ab salted SHA-256 hash save karte hain
-    public void savePin(String pin) { prefs.edit().putString(KEY_PIN, hashPin(pin)).apply(); }
+    public void savePin(String pin) { prefs.edit().putString(KEY_PIN, hashPin(pin, getOrCreateSalt())).apply(); }
+
     public boolean verifyPin(String pin) {
-        return pin != null && hashPin(pin).equals(prefs.getString(KEY_PIN, ""));
+        if (pin == null) return false;
+        String stored = prefs.getString(KEY_PIN, "");
+
+        // Naye (per-install random) salt se check
+        if (hashPin(pin, getOrCreateSalt()).equals(stored)) return true;
+
+        // 🔄 MIGRATION: agar user ka PIN purane static-salt se hash hua tha
+        // (app update se pehle), use purane salt se bhi verify karo. Match
+        // hote hi naye random salt pe migrate karke re-save kar do — taaki
+        // aage se hamesha naya salt use ho.
+        if (!prefs.contains(KEY_PIN_SALT)) {
+            String legacyHash = hashPin(pin, "dairyhisaab_pin_salt_v1");
+            if (legacyHash.equals(stored)) {
+                savePin(pin); // re-hash + save with new random salt
+                return true;
+            }
+        }
+        return false;
     }
-    private static String hashPin(String pin) {
+
+    // 🔒 FIX: Pehle salt hardcoded/static tha ("dairyhisaab_pin_salt_v1") — sab installs
+    // mein same hone se ek precomputed table sab users ke liye kaam karti thi. Ab har
+    // install apna khud ka random 16-byte salt generate karta hai (pehli baar PIN set
+    // hote waqt), SharedPreferences mein save hota hai, aur hashing mein use hota hai.
+    private String getOrCreateSalt() {
+        String existing = prefs.getString(KEY_PIN_SALT, null);
+        if (existing != null) return existing;
+
+        byte[] saltBytes = new byte[16];
+        new java.security.SecureRandom().nextBytes(saltBytes);
+        String salt = android.util.Base64.encodeToString(saltBytes, android.util.Base64.NO_WRAP);
+        prefs.edit().putString(KEY_PIN_SALT, salt).apply();
+        return salt;
+    }
+
+    private String hashPin(String pin, String salt) {
         try {
             java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-            md.update("dairyhisaab_pin_salt_v1".getBytes("UTF-8")); // static salt
+            md.update(salt.getBytes("UTF-8"));
             byte[] hash = md.digest(pin.getBytes("UTF-8"));
             StringBuilder sb = new StringBuilder();
             for (byte b : hash) sb.append(String.format("%02x", b));
