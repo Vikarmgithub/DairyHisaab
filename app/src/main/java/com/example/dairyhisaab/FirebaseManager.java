@@ -311,18 +311,49 @@ public class FirebaseManager {
                 .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
     }
 
-    // 🔑 License check — Firestore licenses/{deviceId} document mein valid:true hai ya nahi.
+    // 🔑 License check — licenses collection mein deviceId field se match karke document dhundo.
     // Write client se kabhi possible nahi (rules mein blocked) — sirf admin Console se daalega.
+    // Expiry check Firestore SERVER time se hota hai (phone ki date change karke bypass nahi ho sakta).
     public void checkLicenseValid(String deviceId, BooleanCallback callback) {
-    if (deviceId == null || deviceId.isEmpty()) { callback.onSuccess(false); return; }
-    db.collection("licenses").document(deviceId)
-            .get(Source.SERVER)
-            .addOnSuccessListener(doc -> {
-                // Agar document sirf bana hua bhi hai (bhale hi khali ho), toh license valid hai
-                callback.onSuccess(doc.exists()); 
-            })
+        if (deviceId == null || deviceId.isEmpty()) { callback.onSuccess(false); return; }
+        String uid = getCurrentUserId();
+        if (uid == null) { callback.onSuccess(false); return; }
+
+        Map<String, Object> tsData = new HashMap<>();
+        tsData.put("ts", com.google.firebase.firestore.FieldValue.serverTimestamp());
+
+        db.collection("server_time").document(uid).set(tsData)
+            .addOnSuccessListener(v ->
+                db.collection("server_time").document(uid).get(Source.SERVER)
+                    .addOnSuccessListener(tsDoc -> {
+                        com.google.firebase.Timestamp serverNow = tsDoc.getTimestamp("ts");
+                        long serverTimeMillis = (serverNow != null)
+                                ? serverNow.toDate().getTime()
+                                : System.currentTimeMillis(); // fallback agar kuch gadbad ho
+
+                        db.collection("licenses")
+                            .whereEqualTo("deviceId", deviceId)
+                            .limit(1)
+                            .get(Source.SERVER)
+                            .addOnSuccessListener(query -> {
+                                if (query.isEmpty()) { callback.onSuccess(false); return; }
+                                DocumentSnapshot doc = query.getDocuments().get(0);
+                                Boolean valid = doc.getBoolean("valid");
+                                boolean isValid = valid != null && valid;
+
+                                if (isValid) {
+                                    com.google.firebase.Timestamp expiresAt = doc.getTimestamp("expiresAt");
+                                    if (expiresAt != null) {
+                                        isValid = expiresAt.toDate().getTime() > serverTimeMillis;
+                                    }
+                                }
+                                callback.onSuccess(isValid);
+                            })
+                            .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
+                    })
+                    .addOnFailureListener(e -> callback.onFailure(e.getMessage())))
             .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
-}
+    }
 
 
     // Device ID pe demo "used" permanently mark karo (demo start hote hi call karo)
