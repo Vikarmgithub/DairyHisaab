@@ -35,6 +35,12 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_ACTIVATED = "IsAppFullyActivated";
     private static final String KEY_DEMO_START = "DemoStartTime";
     private static final long   DEMO_DURATION_MS = 24L * 60 * 60 * 1000; // 24 ghante
+    // 🔒 FIX: Pehle license check sirf internet hone par hota tha — agar phone permanently
+    // offline rahe, revoke kabhi detect hi nahi hota tha (fail-open forever). Ab last
+    // SUCCESSFUL online check ka time save karte hain; agar 30 din se zyada ho gaye bina
+    // kisi successful check ke, app khud lock ho jaati hai jab tak dobara online check na ho.
+    private static final String KEY_LAST_VALID_CHECK = "LastLicenseValidCheckTime";
+    private static final long   OFFLINE_GRACE_MS = 30L * 24 * 60 * 60 * 1000; // 30 din
     private boolean isAppActivated = false;
     private boolean isDemoMode     = false;
     private boolean demoUsedOnDevice = false; // 🔒 device_locks se aaya result (cached for this session)
@@ -141,10 +147,34 @@ public class MainActivity extends AppCompatActivity {
                             "❌ License ab valid nahi hai ya expire ho gayi. Admin se contact karein.",
                             Toast.LENGTH_LONG).show();
                         showActivationDialog();
+                    } else {
+                        // ✅ Online check successful — timestamp refresh karo
+                        activationPrefs.edit().putLong(KEY_LAST_VALID_CHECK, System.currentTimeMillis()).apply();
                     }
                 }
                 @Override
-                public void onFailure(String error) { }
+                public void onFailure(String error) {
+                    // 🔒 Internet/Firebase fail ho gaya — check karo last successful
+                    // check kab hui thi. Agar grace period (30 din) paar ho gaya,
+                    // app ko lock kar do jab tak dobara online check na ho.
+                    long lastValidCheck = activationPrefs.getLong(KEY_LAST_VALID_CHECK, 0);
+                    if (lastValidCheck == 0) {
+                        // Pehli baar activate hua tha tabhi se timestamp nahi tha
+                        // (purana install) — abhi set kar do taaki turant lock na ho.
+                        activationPrefs.edit().putLong(KEY_LAST_VALID_CHECK, System.currentTimeMillis()).apply();
+                        return;
+                    }
+                    long elapsed = System.currentTimeMillis() - lastValidCheck;
+                    if (elapsed > OFFLINE_GRACE_MS) {
+                        activationPrefs.edit().putBoolean(KEY_ACTIVATED, false).apply();
+                        isAppActivated = false;
+                        Toast.makeText(MainActivity.this,
+                            "🔒 30 din se license verify nahi hui (internet nahi mila). " +
+                            "Internet se connect karke dobara activate karein.",
+                            Toast.LENGTH_LONG).show();
+                        showActivationDialog();
+                    }
+                }
             });
         }
     }
@@ -344,6 +374,7 @@ public class MainActivity extends AppCompatActivity {
                     if (valid) {
                         activationPrefs.edit()
                             .putBoolean(KEY_ACTIVATED, true)
+                            .putLong(KEY_LAST_VALID_CHECK, System.currentTimeMillis())
                             .remove(KEY_DEMO_START)
                             .apply();
                         isAppActivated = true;
