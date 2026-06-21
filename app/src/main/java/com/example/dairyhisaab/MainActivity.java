@@ -3,7 +3,6 @@ package com.example.dairyhisaab;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -222,7 +221,6 @@ public class MainActivity extends AppCompatActivity {
 
         String[] options = {
             "🔑 License / Activation  [" + status + "]",
-            "👑 Admin Panel (Key Generator)", 
             "🔒 Password Badlein (Email se)"
         };
 
@@ -231,9 +229,6 @@ public class MainActivity extends AppCompatActivity {
             .setItems(options, (dialog, which) -> {
     if (which == 0) showActivationDialog();
     else if (which == 1) {
-        Intent intent = new Intent(this, KeyGeneratorActivity.class);
-        startActivity(intent);
-    } else if (which == 2) {
         sendPasswordChangeEmail();
     }
 })
