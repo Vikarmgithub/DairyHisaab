@@ -38,6 +38,9 @@ android {
         release {
             signingConfig signingConfigs.release
             debuggable false
+            minifyEnabled true   // 🔒 code obfuscate hoga, decompile mushkil
+            shrinkResources true // unused resources bhi hatenge, APK chhota hoga
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
