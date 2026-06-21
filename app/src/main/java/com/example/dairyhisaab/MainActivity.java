@@ -127,6 +127,29 @@ public class MainActivity extends AppCompatActivity {
             btnSettings.setOnClickListener(v -> showSettingsDialog());
         }
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (isAppActivated && deviceId != null && !deviceId.isEmpty()) {
+            FirebaseManager.getInstance().checkLicenseValid(deviceId, new FirebaseManager.BooleanCallback() {
+                @Override
+                public void onSuccess(boolean valid) {
+                    if (!valid) {
+                        activationPrefs.edit().putBoolean(KEY_ACTIVATED, false).apply();
+                        isAppActivated = false;
+                        Toast.makeText(MainActivity.this,
+                            "❌ License ab valid nahi hai ya expire ho gayi. Admin se contact karein.",
+                            Toast.LENGTH_LONG).show();
+                        showActivationDialog();
+                    }
+                }
+                @Override
+                public void onFailure(String error) { }
+            });
+        }
+    }
+
     @Override
     protected void onDestroy() {
     super.onDestroy();
