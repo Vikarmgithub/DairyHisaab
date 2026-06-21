@@ -12,13 +12,21 @@ import java.util.List;
 public class DashboardFragment extends Fragment {
 
     DairyDataManager dm;
+    private View rootView;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_dashboard, container, false);
+        rootView = inflater.inflate(R.layout.fragment_dashboard, container, false);
         dm = DairyDataManager.getInstance(getContext());
-        loadData(view);
-        return view;
+        loadData(rootView);
+        return rootView;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Tab pe wapas aane par fresh data dikhaye (naya entry/payment add hone ke baad)
+        if (rootView != null) loadData(rootView);
     }
 
     void loadData(View view) {
@@ -44,10 +52,13 @@ public class DashboardFragment extends Fragment {
             }
         }
 
-        // Total baaki
+        // Total baaki (ek baar calculate karke cache karo, baaki list me reuse hoga)
         double totalBaaki = 0;
+        java.util.Map<String, Double> outstandingMap = new java.util.HashMap<>();
         for (Customer c : customers) {
-            totalBaaki += dm.outstanding(c.id);
+            double o = dm.outstanding(c.id);
+            outstandingMap.put(c.id, o);
+            totalBaaki += o;
         }
 
         // Stat cards set karo (Perfectly Matched with New IDs)
@@ -77,7 +88,7 @@ public class DashboardFragment extends Fragment {
         baakiList.removeAllViews();
         boolean koi = false;
         for (Customer c : customers) {
-            double baaki = dm.outstanding(c.id);
+            double baaki = outstandingMap.get(c.id);
             if (baaki > 0) {
                 koi = true;
                 LinearLayout row = new LinearLayout(getContext());
