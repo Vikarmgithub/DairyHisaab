@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.dairyhisaab"
-        minSdk 21
+        minSdk 23  // 🔒 androidx.security:security-crypto ko API 23+ chahiye
         targetSdk 34
         versionCode 1
         versionName "1.0"
@@ -61,4 +61,5 @@ dependencies {
     implementation 'androidx.work:work-runtime:2.9.0'
     implementation 'androidx.viewpager2:viewpager2:1.0.0'
     implementation 'androidx.biometric:biometric:1.1.0'
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'  // 🔒 device-locked backup encryption
 }
