@@ -28,6 +28,12 @@ public class LoginActivity extends AppCompatActivity {
     private boolean isLoginMode = true;
     private ProgressBar progressBar;
 
+    // 🔒 Security note: yeh raw stack trace screen pe dikhata hai (debugging ke liye
+    // bahut useful hai abhi). Jab real customers ko app deni shuru karo, isko false
+    // kar dena — customer ko confusing/unprofessional dikh sakta hai aur internal
+    // class/method names expose hote hain.
+    private static final boolean SHOW_CRASH_DETAILS_TO_USER = true;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,7 +44,7 @@ public class LoginActivity extends AppCompatActivity {
         // 🩺 Agar pichli baar app crash hui thi, to exact reason pehle dikhao —
         // aur jab tak user OK na daba de, MainActivity pe redirect MAT karo
         // (warna dialog turant gayab ho jata hai aur crash phir se ho jata hai)
-        String lastCrash = CrashHandler.getLastCrash(this);
+        String lastCrash = SHOW_CRASH_DETAILS_TO_USER ? CrashHandler.getLastCrash(this) : null;
         if (lastCrash != null) {
             CrashHandler.clearLastCrash(this);
             new android.app.AlertDialog.Builder(this)
@@ -106,6 +112,7 @@ public class LoginActivity extends AppCompatActivity {
     // Logcat ke bina bhi exact crash reason dekhne ke liye — error ko app crash
     // hone se pehle hi pakad ke dialog mein dikhao (class + message + line number)
     private void showCrashDialog(Throwable e) {
+        if (!SHOW_CRASH_DETAILS_TO_USER) return;
         StringBuilder sb = new StringBuilder();
         sb.append(e.toString()).append("\n\n");
         for (StackTraceElement el : e.getStackTrace()) {

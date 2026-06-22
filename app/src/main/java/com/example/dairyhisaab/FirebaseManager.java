@@ -376,7 +376,7 @@ public class FirebaseManager {
         data.put("firstUsedAt", System.currentTimeMillis());
         db.collection(COLLECTION_DEVICE_LOCKS).document(deviceId)
                 .set(data, SetOptions.merge())
-                .addOnSuccessListener(a -> Log.d(TAG, "Device demo lock saved: " + deviceId))
+                .addOnSuccessListener(a -> Log.d(TAG, "Device demo lock saved"))
                 .addOnFailureListener(e -> Log.e(TAG, "markDeviceDemoUsed failed: " + e.getMessage()));
     }
 
@@ -392,7 +392,7 @@ public class FirebaseManager {
         ref.get(Source.SERVER).addOnSuccessListener(doc -> {
             if (!doc.exists() || !doc.contains(KEY_DEVICE_ID)) {
                 ref.set(Collections.singletonMap(KEY_DEVICE_ID, deviceId), SetOptions.merge())
-                        .addOnSuccessListener(a -> Log.d(TAG, "Device ID linked: " + deviceId))
+                        .addOnSuccessListener(a -> Log.d(TAG, "Device ID linked"))
                         .addOnFailureListener(e -> Log.e(TAG, "saveDeviceIdIfNew failed: " + e.getMessage()));
             }
         }).addOnFailureListener(e -> Log.e(TAG, "saveDeviceIdIfNew read failed: " + e.getMessage()));

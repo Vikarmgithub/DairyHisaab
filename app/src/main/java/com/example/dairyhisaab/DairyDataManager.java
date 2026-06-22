@@ -19,6 +19,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class DairyDataManager {
@@ -45,10 +46,60 @@ public class DairyDataManager {
     private boolean isRestoring = false;
 
     private DairyDataManager(Context context) {
-        prefs = context.getApplicationContext()
-                       .getSharedPreferences("dairy_hisaab", Context.MODE_PRIVATE);
+        Context appContext = context.getApplicationContext();
+        prefs = getOrCreateEncryptedPrefs(appContext);
+        migrateFromPlainPrefsIfNeeded(appContext);
         // Raat 9 baje ka daily auto-backup schedule karo
-        scheduleDailyBackup(context.getApplicationContext());
+        scheduleDailyBackup(appContext);
+    }
+
+    // 🔒 FIX: Pehle dairy data plain SharedPreferences mein save hota tha (rooted
+    // phone ya file-extraction se padha ja sakta tha). Ab AES-256 encrypted prefs
+    // use karte hain — key Android Keystore (hardware) mein lock hoti hai, file
+    // copy karne se bhi kisi aur device pe decrypt nahi ho sakti.
+    private SharedPreferences getOrCreateEncryptedPrefs(Context context) {
+        try {
+            androidx.security.crypto.MasterKey masterKey =
+                new androidx.security.crypto.MasterKey.Builder(context)
+                    .setKeyScheme(androidx.security.crypto.MasterKey.KeyScheme.AES256_GCM)
+                    .build();
+            return androidx.security.crypto.EncryptedSharedPreferences.create(
+                context,
+                "dairy_hisaab_secure",
+                masterKey,
+                androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+        } catch (Exception e) {
+            // Keystore fail hone pe bhi app chalti rahe — purane plain prefs pe fallback
+            Log.e(TAG, "Encrypted prefs init failed, falling back to plain prefs: " + e.getMessage());
+            return context.getSharedPreferences("dairy_hisaab", Context.MODE_PRIVATE);
+        }
+    }
+
+    // Purane plain "dairy_hisaab" prefs se naye encrypted prefs mein ek baar data
+    // copy karo (sirf agar naya khaali hai aur purana data maujood hai), phir purana
+    // plaintext data clear kar do taaki disk pe na reh jaaye.
+    private void migrateFromPlainPrefsIfNeeded(Context context) {
+        if (prefs.contains(KEY_CUSTOMERS)) return; // already migrated / already has data
+
+        SharedPreferences oldPrefs = context.getSharedPreferences("dairy_hisaab", Context.MODE_PRIVATE);
+        Map<String, ?> oldData = oldPrefs.getAll();
+        if (oldData.isEmpty()) return; // naya install — kuch migrate karne ko nahi
+
+        SharedPreferences.Editor editor = prefs.edit();
+        for (Map.Entry<String, ?> entry : oldData.entrySet()) {
+            Object v = entry.getValue();
+            if (v instanceof String)  editor.putString(entry.getKey(), (String) v);
+            else if (v instanceof Boolean) editor.putBoolean(entry.getKey(), (Boolean) v);
+            else if (v instanceof Long)    editor.putLong(entry.getKey(), (Long) v);
+            else if (v instanceof Integer) editor.putInt(entry.getKey(), (Integer) v);
+            else if (v instanceof Float)   editor.putFloat(entry.getKey(), (Float) v);
+        }
+        editor.apply();
+
+        oldPrefs.edit().clear().apply(); // purana plaintext data hata do
+        Log.d(TAG, "Migrated plain prefs -> encrypted prefs");
     }
 
     public static synchronized DairyDataManager getInstance(Context context) {
