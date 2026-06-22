@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
     // SUCCESSFUL online check ka time save karte hain; agar 30 din se zyada ho gaye bina
     // kisi successful check ke, app khud lock ho jaati hai jab tak dobara online check na ho.
     private static final String KEY_LAST_VALID_CHECK = "LastLicenseValidCheckTime";
+    private static final String KEY_LICENSE_EXPIRES_AT = "LicenseExpiresAt"; // 0 = lifetime / not set
     private static final long   OFFLINE_GRACE_MS = 30L * 24 * 60 * 60 * 1000; // 30 din
     private boolean isAppActivated = false;
     private boolean isDemoMode     = false;
@@ -137,9 +138,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (isAppActivated && deviceId != null && !deviceId.isEmpty()) {
-            FirebaseManager.getInstance().checkLicenseValid(deviceId, new FirebaseManager.BooleanCallback() {
+            FirebaseManager.getInstance().checkLicenseValidDetailed(deviceId, new FirebaseManager.LicenseStatusCallback() {
                 @Override
-                public void onSuccess(boolean valid) {
+                public void onResult(boolean valid, Long expiresAtMillis) {
                     if (!valid) {
                         activationPrefs.edit().putBoolean(KEY_ACTIVATED, false).apply();
                         isAppActivated = false;
@@ -148,8 +149,11 @@ public class MainActivity extends AppCompatActivity {
                             Toast.LENGTH_LONG).show();
                         showActivationDialog();
                     } else {
-                        // ✅ Online check successful — timestamp refresh karo
-                        activationPrefs.edit().putLong(KEY_LAST_VALID_CHECK, System.currentTimeMillis()).apply();
+                        // ✅ Online check successful — timestamp + expiry date refresh karo
+                        activationPrefs.edit()
+                            .putLong(KEY_LAST_VALID_CHECK, System.currentTimeMillis())
+                            .putLong(KEY_LICENSE_EXPIRES_AT, expiresAtMillis != null ? expiresAtMillis : 0)
+                            .apply();
                     }
                 }
                 @Override
@@ -244,10 +248,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ==================== ⚙️ SETTINGS DIALOG ====================
+    private String getLicenseStatusText() {
+        if (!isAppActivated) return "❌ Not Activated";
+        if (isDemoMode) return "⏳ Demo Mode";
+
+        long expiresAt = activationPrefs.getLong(KEY_LICENSE_EXPIRES_AT, 0);
+        if (expiresAt <= 0) {
+            return "✅ Activated (Lifetime)";
+        } else {
+            java.text.SimpleDateFormat sdf =
+                new java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault());
+            return "✅ Activated (तक: " + sdf.format(new java.util.Date(expiresAt)) + ")";
+        }
+    }
+
     private void showSettingsDialog() {
-        String status = isAppActivated
-                ? (isDemoMode ? "⏳ Demo Mode" : "✅ Activated")
-                : "❌ Not Activated";
+        String status = getLicenseStatusText();
 
         String[] options = {
             "🔑 License / Activation  [" + status + "]",
@@ -275,8 +291,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Sirf email/password wale users ke liye (Google Sign-In users ka Firebase password nahi hota)
-    boolean isEmailUser = user.getProviderData().stream()
-            .anyMatch(info -> info.getProviderId().equals("password"));
+    boolean isEmailUser = false;
+    for (com.google.firebase.auth.UserInfo info : user.getProviderData()) {
+        if ("password".equals(info.getProviderId())) {
+            isEmailUser = true;
+            break;
+        }
+    }
     if (!isEmailUser) {
         Toast.makeText(this, "Google Sign-In account ka password Google se hi change hoga.", Toast.LENGTH_LONG).show();
         return;
@@ -368,13 +389,14 @@ public class MainActivity extends AppCompatActivity {
         // ✅ Activate button — ab Firestore licenses/{deviceId} se check hota hai
         builder.setPositiveButton("✅ Activation Check Karein", (dialog, which) -> {
             Toast.makeText(this, "⏳ Check kar rahe hain...", Toast.LENGTH_SHORT).show();
-            FirebaseManager.getInstance().checkLicenseValid(deviceId, new FirebaseManager.BooleanCallback() {
+            FirebaseManager.getInstance().checkLicenseValidDetailed(deviceId, new FirebaseManager.LicenseStatusCallback() {
                 @Override
-                public void onSuccess(boolean valid) {
+                public void onResult(boolean valid, Long expiresAtMillis) {
                     if (valid) {
                         activationPrefs.edit()
                             .putBoolean(KEY_ACTIVATED, true)
                             .putLong(KEY_LAST_VALID_CHECK, System.currentTimeMillis())
+                            .putLong(KEY_LICENSE_EXPIRES_AT, expiresAtMillis != null ? expiresAtMillis : 0)
                             .remove(KEY_DEMO_START)
                             .apply();
                         isAppActivated = true;

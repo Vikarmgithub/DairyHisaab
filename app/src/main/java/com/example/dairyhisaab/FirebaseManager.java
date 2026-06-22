@@ -245,6 +245,12 @@ public class FirebaseManager {
         void onFailure(String error);
     }
 
+    // 🔑 Same as BooleanCallback par expiry date bhi saath deta hai (null = lifetime/no expiry)
+    public interface LicenseStatusCallback {
+        void onResult(boolean valid, Long expiresAtMillis);
+        void onFailure(String error);
+    }
+
     public interface StringCallback {
         void onSuccess(String value);
         void onFailure(String error);
@@ -309,6 +315,51 @@ public class FirebaseManager {
                     callback.onSuccess(used != null && used);
                 })
                 .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
+    }
+
+    // 🔑 checkLicenseValid jaisa hi, par expiry date (expiresAtMillis) bhi return karta hai
+    // taaki UI mein "Activated tak: <date>" ya "Lifetime" dikha sakein.
+    public void checkLicenseValidDetailed(String deviceId, LicenseStatusCallback callback) {
+        if (deviceId == null || deviceId.isEmpty()) { callback.onResult(false, null); return; }
+        String uid = getCurrentUserId();
+        if (uid == null) { callback.onResult(false, null); return; }
+
+        Map<String, Object> tsData = new HashMap<>();
+        tsData.put("ts", com.google.firebase.firestore.FieldValue.serverTimestamp());
+
+        db.collection("server_time").document(uid).set(tsData)
+            .addOnSuccessListener(v ->
+                db.collection("server_time").document(uid).get(Source.SERVER)
+                    .addOnSuccessListener(tsDoc -> {
+                        com.google.firebase.Timestamp serverNow = tsDoc.getTimestamp("ts");
+                        long serverTimeMillis = (serverNow != null)
+                                ? serverNow.toDate().getTime()
+                                : System.currentTimeMillis();
+
+                        db.collection("licenses")
+                            .whereEqualTo("deviceId", deviceId)
+                            .limit(1)
+                            .get(Source.SERVER)
+                            .addOnSuccessListener(query -> {
+                                if (query.isEmpty()) { callback.onResult(false, null); return; }
+                                DocumentSnapshot doc = query.getDocuments().get(0);
+                                Boolean valid = doc.getBoolean("valid");
+                                boolean isValid = valid != null && valid;
+                                Long expiresAtMillis = null;
+
+                                com.google.firebase.Timestamp expiresAt = doc.getTimestamp("expiresAt");
+                                if (expiresAt != null) {
+                                    expiresAtMillis = expiresAt.toDate().getTime();
+                                    if (isValid) {
+                                        isValid = expiresAtMillis > serverTimeMillis;
+                                    }
+                                }
+                                callback.onResult(isValid, expiresAtMillis);
+                            })
+                            .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
+                    })
+                    .addOnFailureListener(e -> callback.onFailure(e.getMessage())))
+            .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
     }
 
     // 🔑 License check — licenses collection mein deviceId field se match karke document dhundo.
