@@ -33,19 +33,27 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        // 🩺 Agar pichli baar app crash hui thi, to exact reason yahan dikhao
+        mAuth = FirebaseAuth.getInstance();
+
+        // 🩺 Agar pichli baar app crash hui thi, to exact reason pehle dikhao —
+        // aur jab tak user OK na daba de, MainActivity pe redirect MAT karo
+        // (warna dialog turant gayab ho jata hai aur crash phir se ho jata hai)
         String lastCrash = CrashHandler.getLastCrash(this);
         if (lastCrash != null) {
+            CrashHandler.clearLastCrash(this);
             new android.app.AlertDialog.Builder(this)
                     .setTitle("⚠️ Pichla Crash Detail")
                     .setMessage(lastCrash)
-                    .setPositiveButton("OK", (d, w) -> CrashHandler.clearLastCrash(this))
+                    .setPositiveButton("OK", (d, w) -> proceedAfterCrashCheck())
                     .setCancelable(false)
                     .show();
+            return;
         }
 
-        mAuth = FirebaseAuth.getInstance();
+        proceedAfterCrashCheck();
+    }
 
+    private void proceedAfterCrashCheck() {
         if (mAuth.getCurrentUser() != null) {
             boolean isEmailUser = false;
             for (com.google.firebase.auth.UserInfo info : mAuth.getCurrentUser().getProviderData()) {
