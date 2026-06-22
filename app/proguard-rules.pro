@@ -23,6 +23,14 @@
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
 
+# 🔧 R8 full-mode TypeToken fix — anonymous "new TypeToken<...>(){}" subclasses
+# ko R8 merge/inline kar deta hai jisse generic type info toot jata hai, isi se
+# "TypeToken must be created with a type argument" crash aata hai. Yeh Gson ka
+# official recommended fix hai (allowobfuscation/allowshrinking so naam/shrink
+# to ho sakta hai, par class structure aur generic signature surakshit rahega).
+-keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
+-keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
+
 # ── Firebase ──
 -keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }
