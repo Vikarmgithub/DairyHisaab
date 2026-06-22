@@ -336,13 +336,15 @@ public class FirebaseManager {
                                 ? serverNow.toDate().getTime()
                                 : System.currentTimeMillis();
 
-                        db.collection("licenses")
-                            .whereEqualTo("deviceId", deviceId)
-                            .limit(1)
+                        // 🔒 FIX: Pehle .whereEqualTo("deviceId", deviceId).limit(1) query thi —
+                        // isko Firestore rules mein "list" permission chahiye hoti, jo enumeration
+                        // ke liye expose ho jaati. Ab seedha document ID se lookup karte hain — sirf
+                        // "get" permission chahiye, "list" Firestore rules mein band rakh sakte ho.
+                        // ⚠️ License document ka ID Firebase Console mein deviceId hi rakho (auto-ID nahi).
+                        db.collection("licenses").document(deviceId)
                             .get(Source.SERVER)
-                            .addOnSuccessListener(query -> {
-                                if (query.isEmpty()) { callback.onResult(false, null); return; }
-                                DocumentSnapshot doc = query.getDocuments().get(0);
+                            .addOnSuccessListener(doc -> {
+                                if (!doc.exists()) { callback.onResult(false, null); return; }
                                 Boolean valid = doc.getBoolean("valid");
                                 boolean isValid = valid != null && valid;
                                 Long expiresAtMillis = null;
@@ -362,49 +364,8 @@ public class FirebaseManager {
             .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
     }
 
-    // 🔑 License check — licenses collection mein deviceId field se match karke document dhundo.
-    // Write client se kabhi possible nahi (rules mein blocked) — sirf admin Console se daalega.
-    // Expiry check Firestore SERVER time se hota hai (phone ki date change karke bypass nahi ho sakta).
-    public void checkLicenseValid(String deviceId, BooleanCallback callback) {
-        if (deviceId == null || deviceId.isEmpty()) { callback.onSuccess(false); return; }
-        String uid = getCurrentUserId();
-        if (uid == null) { callback.onSuccess(false); return; }
-
-        Map<String, Object> tsData = new HashMap<>();
-        tsData.put("ts", com.google.firebase.firestore.FieldValue.serverTimestamp());
-
-        db.collection("server_time").document(uid).set(tsData)
-            .addOnSuccessListener(v ->
-                db.collection("server_time").document(uid).get(Source.SERVER)
-                    .addOnSuccessListener(tsDoc -> {
-                        com.google.firebase.Timestamp serverNow = tsDoc.getTimestamp("ts");
-                        long serverTimeMillis = (serverNow != null)
-                                ? serverNow.toDate().getTime()
-                                : System.currentTimeMillis(); // fallback agar kuch gadbad ho
-
-                        db.collection("licenses")
-                            .whereEqualTo("deviceId", deviceId)
-                            .limit(1)
-                            .get(Source.SERVER)
-                            .addOnSuccessListener(query -> {
-                                if (query.isEmpty()) { callback.onSuccess(false); return; }
-                                DocumentSnapshot doc = query.getDocuments().get(0);
-                                Boolean valid = doc.getBoolean("valid");
-                                boolean isValid = valid != null && valid;
-
-                                if (isValid) {
-                                    com.google.firebase.Timestamp expiresAt = doc.getTimestamp("expiresAt");
-                                    if (expiresAt != null) {
-                                        isValid = expiresAt.toDate().getTime() > serverTimeMillis;
-                                    }
-                                }
-                                callback.onSuccess(isValid);
-                            })
-                            .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
-                    })
-                    .addOnFailureListener(e -> callback.onFailure(e.getMessage())))
-            .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
-    }
+    // (checkLicenseValid hata diya — ab sirf checkLicenseValidDetailed use hota hai,
+    // jo deviceId document-ID se direct lookup karta hai, query/list permission nahi chahiye)
 
 
     // Device ID pe demo "used" permanently mark karo (demo start hote hi call karo)
