@@ -33,11 +33,27 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+        // 🩺 Agar pichli baar app crash hui thi, to exact reason yahan dikhao
+        String lastCrash = CrashHandler.getLastCrash(this);
+        if (lastCrash != null) {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("⚠️ Pichla Crash Detail")
+                    .setMessage(lastCrash)
+                    .setPositiveButton("OK", (d, w) -> CrashHandler.clearLastCrash(this))
+                    .setCancelable(false)
+                    .show();
+        }
+
         mAuth = FirebaseAuth.getInstance();
 
         if (mAuth.getCurrentUser() != null) {
-            boolean isEmailUser = mAuth.getCurrentUser().getProviderData()
-                    .stream().anyMatch(info -> info.getProviderId().equals("password"));
+            boolean isEmailUser = false;
+            for (com.google.firebase.auth.UserInfo info : mAuth.getCurrentUser().getProviderData()) {
+                if ("password".equals(info.getProviderId())) {
+                    isEmailUser = true;
+                    break;
+                }
+            }
             if (!isEmailUser || mAuth.getCurrentUser().isEmailVerified()) {
                 goToMain();
                 return;
@@ -62,9 +78,38 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void setupClickListeners() {
-        btnLogin.setOnClickListener(v -> loginWithEmail());
-        btnRegister.setOnClickListener(v -> registerWithEmail());
+        btnLogin.setOnClickListener(v -> {
+            try {
+                loginWithEmail();
+            } catch (Exception e) {
+                showCrashDialog(e);
+            }
+        });
+        btnRegister.setOnClickListener(v -> {
+            try {
+                registerWithEmail();
+            } catch (Exception e) {
+                showCrashDialog(e);
+            }
+        });
         tvToggle.setOnClickListener(v -> toggleMode());
+    }
+
+    // Logcat ke bina bhi exact crash reason dekhne ke liye — error ko app crash
+    // hone se pehle hi pakad ke dialog mein dikhao (class + message + line number)
+    private void showCrashDialog(Throwable e) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(e.toString()).append("\n\n");
+        for (StackTraceElement el : e.getStackTrace()) {
+            if (el.getClassName().contains("dairyhisaab")) {
+                sb.append(el.toString()).append("\n");
+            }
+        }
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("⚠️ Login Crash Caught")
+                .setMessage(sb.toString())
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     private void setupGoogleSignIn() {
