@@ -415,6 +415,18 @@ public class DailyEntryFragment extends Fragment {
         tvPrint.setOnClickListener(v -> printIndividualSlip(entry, c));
         row.addView(tvPrint);
 
+        // 💬 WhatsApp share button — customer ke phone number pe slip details bhejo
+        TextView tvWhatsApp = new TextView(getContext());
+        tvWhatsApp.setLayoutParams(new LinearLayout.LayoutParams(44,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        tvWhatsApp.setText("💬");
+        tvWhatsApp.setTextSize(14);
+        tvWhatsApp.setGravity(android.view.Gravity.CENTER);
+        tvWhatsApp.setClickable(true);
+        tvWhatsApp.setFocusable(true);
+        tvWhatsApp.setOnClickListener(v -> shareSlipOnWhatsApp(entry, c));
+        row.addView(tvWhatsApp);
+
         // ── Tap on row → Edit mode ──
         row.setClickable(true);
         row.setFocusable(true);
@@ -569,7 +581,73 @@ public class DailyEntryFragment extends Fragment {
         }
     }
 
-    // ── Print all entries slip (summary) ──
+    // ── 💬 WhatsApp pe slip details customer ke number pe seedha bhejo ──
+    // Note: WhatsApp/Android ki limitation ke karan PDF file ko kisi specific
+    // number pe directly auto-attach nahi kiya ja sakta (file share karne par
+    // WhatsApp khud contact list dikhata hai). Isliye yahan formatted TEXT
+    // message bhejte hain — seedha customer ke chat mein khulega, ready to send.
+    private void shareSlipOnWhatsApp(MilkEntry entry, Customer c) {
+        if (c.phone == null || c.phone.trim().isEmpty()) {
+            Toast.makeText(getContext(),
+                    "⚠️ " + c.name + " ke record mein phone number nahi hai. Pehle Members mein add karo.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String formattedPhone = formatPhoneForWhatsApp(c.phone);
+        if (formattedPhone == null) {
+            Toast.makeText(getContext(),
+                    "⚠️ Phone number sahi format mein nahi hai: " + c.phone,
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        double gross = entry.qty * entry.rate;
+        double pf    = entry.qty * pfPerLiter;
+        double net   = gross - pf;
+        String dairyName = getDairyName();
+
+        String message =
+                "🥛 *" + dairyName + "*\n" +
+                "Collection Slip — " + selectedShift + " Shift, " + etDate.getText().toString() + "\n\n" +
+                "Member: *" + c.name + "*\n" +
+                "Code No.: " + c.memberCode + "\n\n" +
+                "Milk: " + String.format(Locale.getDefault(), "%.1f", entry.qty) + " L\n" +
+                "Fat: " + String.format(Locale.getDefault(), "%.1f", entry.fat) + "\n" +
+                "Rate: ₹" + String.format(Locale.getDefault(), "%.2f", entry.rate) + "\n" +
+                "PF Deduction: ₹" + String.format(Locale.getDefault(), "%.2f", pf) + "\n" +
+                "*Net Amount: ₹" + String.format(Locale.getDefault(), "%.2f", net) + "*\n\n" +
+                "— " + dairyName;
+
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setData(Uri.parse("https://api.whatsapp.com/send?phone=" + formattedPhone
+                    + "&text=" + Uri.encode(message)));
+            intent.setPackage("com.whatsapp");
+            startActivity(intent);
+        } catch (android.content.ActivityNotFoundException e) {
+            // WhatsApp installed nahi hai — bina package restriction ke try karo
+            // (browser/WhatsApp Business jo bhi handle kar sake)
+            try {
+                Intent fallback = new Intent(Intent.ACTION_VIEW);
+                fallback.setData(Uri.parse("https://api.whatsapp.com/send?phone=" + formattedPhone
+                        + "&text=" + Uri.encode(message)));
+                startActivity(fallback);
+            } catch (Exception ex) {
+                Toast.makeText(getContext(), "⚠️ WhatsApp installed nahi hai.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    // Phone number ko WhatsApp ke liye format karo: sirf digits, 10-digit Indian
+    // number ho to "91" prefix lagao. null return = invalid/unrecognized format.
+    private String formatPhoneForWhatsApp(String rawPhone) {
+        String digits = rawPhone.replaceAll("[^0-9]", "");
+        if (digits.length() == 10) return "91" + digits;
+        if (digits.length() == 12 && digits.startsWith("91")) return digits;
+        if (digits.length() == 13 && digits.startsWith("091")) return "91" + digits.substring(3);
+        return null; // unexpected format
+    }
     private void printAllSlipsPdf() {
         if (sessionEntries.isEmpty()) {
             Toast.makeText(getContext(), "Koi entry nahi hai!", Toast.LENGTH_SHORT).show();
