@@ -25,7 +25,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
-import com.google.firebase.auth.FirebaseAuth;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
@@ -796,16 +795,7 @@ public class DailyEntryFragment extends Fragment {
     }
 
     private String getDairyName() {
-        String dairyName = "Dairy Hisaab";
-        try {
-            com.google.firebase.auth.FirebaseUser user =
-                    FirebaseAuth.getInstance().getCurrentUser();
-            if (user != null && user.getDisplayName() != null
-                    && !user.getDisplayName().isEmpty()) {
-                dairyName = user.getDisplayName();
-            }
-        } catch (Exception ignored) {}
-        return dairyName;
+        return DairyDataManager.getInstance(getContext()).getDairyName();
     }
 
     private TextView makeCell(String text, int widthDp, boolean bold, String color) {

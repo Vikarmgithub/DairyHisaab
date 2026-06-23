@@ -32,6 +32,7 @@ public class DairyDataManager {
     private final Gson gson = new Gson();
 
     private static final String KEY_CUSTOMERS    = "dairy_customers";
+    private static final String KEY_DAIRY_NAME   = "dairy_name"; // Settings se editable
     private static final String KEY_ENTRIES      = "dairy_entries";
     private static final String KEY_PAYMENTS     = "dairy_payments";
     private static final String KEY_RATE_HISTORY = "dairy_rateHistory";
@@ -202,7 +203,27 @@ public class DairyDataManager {
         this.isRestoring = restoring;
     }
 
-    // ── Auto cloud backup (debounced 2 sec) ──
+    // App background mein jaane se pehle (onPause/onStop) is se turant backup
+    // force kar sakte ho — debounce ka wait nahi karna padega, data miss nahi hoga
+    public void flushPendingBackupNow() {
+        if (backupRunnable == null) return; // koi pending backup nahi hai
+        backupHandler.removeCallbacks(backupRunnable);
+        backupRunnable.run();
+        backupRunnable = null;
+    }
+
+    // ── Auto cloud backup (debounced) ──
+    // 🔧 SCALE FIX: pehle 2 second debounce thi — matlab agar tum lagataar
+    // entries add karte ho (jaise 20 entries ek session mein), to har 2-sec
+    // gap pe POORA dataset firestore mein dobara upload hota tha (cost +
+    // Firestore ki 1MB/document limit ki taraf jaldi badhte). Ab 3 minute
+    // debounce hai — ek poori data-entry session (jab tak tum ruk-ruk ke
+    // kaam karte ho) sirf EK upload mein coalesce ho jayegi. Raat 9 baje
+    // wala daily WorkManager backup already safety-net hai, isliye thoda
+    // delay safe hai — local data (encrypted) turant save hota hai, sirf
+    // cloud-copy thoda der se jaata hai.
+    private static final long CLOUD_BACKUP_DEBOUNCE_MS = 3 * 60 * 1000; // 3 minute
+
     private void triggerCloudBackup() {
         if (isRestoring) return;
         if (!FirebaseManager.getInstance().isLoggedIn()) return;
@@ -215,7 +236,7 @@ public class DairyDataManager {
                     public void onFailure(String e) { Log.e(TAG, "Auto backup failed: " + e); }
                 }
             );
-        backupHandler.postDelayed(backupRunnable, 2000);
+        backupHandler.postDelayed(backupRunnable, CLOUD_BACKUP_DEBOUNCE_MS);
     }
 
     // ── Save / Load helpers ──
@@ -231,6 +252,28 @@ public class DairyDataManager {
     }
 
     // ── Customers ──
+    // 🏷️ Dairy ka naam — Settings se editable, slip print/reports/WhatsApp sab
+    // jagah yahi ek jagah se aata hai. Agar customer ne kabhi set nahi kiya,
+    // to Firebase signup ke waqt diya naam fallback ke roop mein use hota hai.
+    public String getDairyName() {
+        String custom = prefs.getString(KEY_DAIRY_NAME, null);
+        if (custom != null && !custom.trim().isEmpty()) return custom;
+
+        try {
+            com.google.firebase.auth.FirebaseUser user =
+                    com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+            if (user != null && user.getDisplayName() != null && !user.getDisplayName().isEmpty()) {
+                return user.getDisplayName();
+            }
+        } catch (Exception ignored) {}
+
+        return "Dairy Hisaab";
+    }
+
+    public void setDairyName(String name) {
+        prefs.edit().putString(KEY_DAIRY_NAME, name).apply();
+    }
+
     public List<Customer> getCustomers() {
         return load(KEY_CUSTOMERS, new TypeToken<List<Customer>>(){}.getType());
     }

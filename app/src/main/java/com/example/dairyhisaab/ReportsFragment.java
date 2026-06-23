@@ -1,7 +1,6 @@
 package com.example.dairyhisaab;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -86,9 +85,8 @@ public class ReportsFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_reports, container, false);
         dm = DairyDataManager.getInstance(getContext());
 
-        // Login session se dynamic Dairy ka naam nikalna
-        SharedPreferences prefs = requireActivity().getSharedPreferences("DairyPrefs", Context.MODE_PRIVATE);
-        activeDairyName = prefs.getString("dairy_name", "MY DAIRY");
+        // Settings se set kiya gaya dairy ka naam (sab jagah ek hi jagah se)
+        activeDairyName = dm.getDairyName();
 
         LinearLayout layoutFilters = view.findViewById(R.id.layoutFilters);
         LinearLayout layoutPFMonthSelector = view.findViewById(R.id.layoutPFMonthSelector);

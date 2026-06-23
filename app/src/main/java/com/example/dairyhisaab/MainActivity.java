@@ -184,6 +184,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        // 🔧 SCALE FIX: cloud backup ab 3-min debounce pe hai (pehle 2-sec thi).
+        // Agar app background mein chali jaye debounce poora hone se pehle,
+        // pending backup turant kar do — warna OS process kill kar sakta hai
+        // aur wo cloud-sync miss ho jayega (local data to turant save hi hota hai).
+        DairyDataManager.getInstance(this).flushPendingBackupNow();
+    }
+
+    @Override
     protected void onDestroy() {
     super.onDestroy();
     DairyDataManager dm = DairyDataManager.getInstance(this);
@@ -267,6 +277,7 @@ public class MainActivity extends AppCompatActivity {
 
         String[] options = {
             "🔑 License / Activation  [" + status + "]",
+            "🏷️ Dairy Naam Badlein",
             "🔒 Password Badlein (Email se)"
         };
 
@@ -274,11 +285,42 @@ public class MainActivity extends AppCompatActivity {
             .setTitle("⚙️ Settings")
             .setItems(options, (dialog, which) -> {
     if (which == 0) showActivationDialog();
-    else if (which == 1) {
+    else if (which == 1) showDairyNameDialog();
+    else if (which == 2) {
         sendPasswordChangeEmail();
     }
 })
             .setNegativeButton("बंद करें", null)
+            .show();
+    }
+
+    // 🏷️ Dairy ka naam change karne ke liye dialog — slip print, reports,
+    // WhatsApp message sab jagah ye naya naam use hoga
+    private void showDairyNameDialog() {
+        EditText input = new EditText(this);
+        input.setHint("Dairy ka naam");
+        input.setText(DairyDataManager.getInstance(this).getDairyName());
+        input.setSelection(input.getText().length());
+
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(pad, pad / 2, pad, 0);
+        container.addView(input);
+
+        new AlertDialog.Builder(this)
+            .setTitle("🏷️ Dairy Naam Badlein")
+            .setView(container)
+            .setPositiveButton("Save", (d, w) -> {
+                String newName = input.getText().toString().trim();
+                if (newName.isEmpty()) {
+                    Toast.makeText(this, "Naam khaali nahi ho sakta", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                DairyDataManager.getInstance(this).setDairyName(newName);
+                Toast.makeText(this, "✅ Dairy naam update ho gaya: " + newName, Toast.LENGTH_SHORT).show();
+            })
+            .setNegativeButton("Cancel", null)
             .show();
     }
     private void sendPasswordChangeEmail() {
